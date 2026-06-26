@@ -1,17 +1,17 @@
 /**
- * Punto de entrada para Phusion Passenger (cPanel / CloudLinux Node.js Selector).
+ * Punto de entrada para Phusion Passenger / LiteSpeed (Node.js Selector de cPanel).
  *
- * Passenger carga este archivo con Node y espera que la app escuche en el
- * puerto que asigna mediante process.env.PORT. Node 24 ejecuta TypeScript de
- * forma nativa, así que sólo importamos el server real (src/server.ts), que ya
- * escucha en process.env.PORT (default 3000 en local).
+ * Passenger carga este archivo con Node y espera que la app escuche en el puerto
+ * que asigna mediante process.env.PORT. El server real (src/server.ts) ya lo hace.
  *
- * Si una versión de Node sin soporte nativo de TS tuviera que correr esto,
- * descomentar el registro de tsx (requiere la devDependency instalada):
- *
- *   const { register } = require('tsx/esm/api');
- *   register();
+ * El código es TypeScript con sintaxis que el "strip-only" nativo de Node NO
+ * soporta (parameter properties: `constructor(private x = ...)`). Por eso
+ * registramos tsx para transformarlo en runtime — igual que en local y en el
+ * cron. tsx viene en las dependencias instaladas (npm install).
  */
+const { register } = require('tsx/esm/api');
+register();
+
 import('./src/server.ts').catch((err) => {
   console.error('No se pudo iniciar la app bajo Passenger:', err);
   process.exit(1);
