@@ -14,7 +14,7 @@ let pass = 0, fail = 0;
 const check = (n: string, c: boolean) => { console.log(`${c ? '✅' : '❌'} ${n}`); c ? pass++ : fail++; };
 
 const first = await runSource(store, adapter);
-check('1ª corrida: detecta cambio e ingiere', first.outcome === 'changed' && first.fetched === 3);
+check('1ª corrida: detecta cambio e ingiere', first.outcome === 'changed' && first.fetched === 4);
 
 const second = await runSource(store, adapter);
 check('2ª corrida (mismo contenido): NO re-ingiere', second.outcome === 'unchanged_hash');
