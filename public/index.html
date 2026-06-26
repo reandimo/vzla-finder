@@ -127,6 +127,7 @@
   .source-row {
     display: flex; align-items: center; gap: 10px; background: var(--card);
     border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+    flex-wrap: wrap;
   }
   .source-row .live { width: 8px; height: 8px; border-radius: 50%; background: var(--safe); flex: none; }
   .source-row .live.off { background: var(--line); }
@@ -392,6 +393,17 @@
     return `hace ${Math.round(h / 24)} d`;
   }
 
+  // Fecha/hora exacta del último cacheo (para el tooltip).
+  function fmtDate(iso) {
+    if (!iso) return 'todavía sin cachear';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleString('es-VE', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  }
+
   async function loadSources() {
     const list = document.getElementById('source-list');
     try {
@@ -403,10 +415,13 @@
       }
       list.innerHTML = data.sources.map((s) => {
         const off = s.ok === false ? ' off' : '';
+        const when = s.lastFetched
+          ? `Último cacheo ${timeAgo(s.lastFetched)}`
+          : 'Sin cachear aún';
         return `<li class="source-row">
           <span class="live${off}" title="${s.ok === false ? 'última sincronización con error' : 'activa'}"></span>
           <a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.domain)}</a>
-          <span class="when">${esc(timeAgo(s.lastFetched))}</span>
+          <span class="when" title="Último cacheo: ${esc(fmtDate(s.lastFetched))}">${esc(when)}</span>
         </li>`;
       }).join('');
     } catch {
