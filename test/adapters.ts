@@ -3,7 +3,7 @@
  *   npm run test:adapters
  */
 import { readFileSync } from 'node:fs';
-import { VenezuelaTeBuscaAdapter } from '../src/sources/venezuelatebusca.ts';
+import { VenezuelaTeBuscaAdapter, unflatten } from '../src/sources/venezuelatebusca.ts';
 import { DesaparecidosTerremotoAdapter } from '../src/sources/desaparecidos.ts';
 import { EstoyAquiAdapter } from '../src/sources/estoyaqui.ts';
 
@@ -11,12 +11,21 @@ let pass = 0, fail = 0;
 const check = (n: string, c: boolean) => { console.log(`${c ? '✅' : '❌'} ${n}`); c ? pass++ : fail++; };
 const read = (rel: string) => readFileSync(new URL(`../fixtures/${rel}`, import.meta.url), 'utf8');
 
-// --- venezuelatebusca: JSON con cédula ---
-const vtb = new VenezuelaTeBuscaAdapter().parse(read('venezuelatebusca.json'));
-check('vtb: parsea todos los registros del fixture', vtb.length === 4);
-check('vtb: trae cédula donde existe', vtb.filter((r) => r.cedula).length >= 2);
-check('vtb: incluye al extranjero E-', vtb.some((r) => (r.cedula ?? '').startsWith('E-')));
-check('vtb: estatus "sin contacto" → sin_contacto', vtb.some((r) => r.status === 'sin_contacto'));
+// --- venezuelatebusca: turbo-stream (React Router /_root.data) con cédula ---
+check('unflatten: resuelve clave/valor por índice', unflatten([{ _1: 2 }, 'k', 'v']).k === 'v');
+const ts = [
+  { _1: 2 }, 'persons', [3],
+  { _4: 5, _6: 7, _8: 9, _10: 11, _12: 13, _14: 15, _16: 17 },
+  'id', 'p-1', 'firstName', 'Ana', 'lastName', 'Lopez',
+  'idNumber', 'V-7.654.321', 'age', 30, 'status', 'missing',
+  'photoUrl', '/media/photos/x.webp',
+];
+const body = JSON.stringify([JSON.stringify(ts)]);
+const vtb = new VenezuelaTeBuscaAdapter().parse(body);
+check('vtb: decodifica turbo-stream y arma el nombre', vtb.length === 1 && vtb[0].fullName === 'Ana Lopez');
+check('vtb: idNumber → cédula', vtb[0].cedula === 'V-7.654.321');
+check('vtb: status "missing" → sin_contacto', vtb[0].status === 'sin_contacto');
+check('vtb: photoUrl se vuelve absoluta', (vtb[0].photoUrl ?? '').startsWith('https://venezuelatebusca.com/media/photos'));
 
 // --- desaparecidos: HTML con cheerio ---
 const desap = new DesaparecidosTerremotoAdapter().parse(read('desaparecidos-terremoto.html'));

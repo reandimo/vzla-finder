@@ -4,7 +4,7 @@
  */
 import { Store } from '../src/db.ts';
 import { runSource } from '../src/runner.ts';
-import { VenezuelaTeBuscaAdapter } from '../src/sources/venezuelatebusca.ts';
+import { DesaparecidosTerremotoAdapter } from '../src/sources/desaparecidos.ts';
 import type { SourceAdapter, SourceConfig } from '../src/types.ts';
 
 let pass = 0, fail = 0;
@@ -13,10 +13,10 @@ const check = (n: string, c: boolean) => { console.log(`${c ? '✅' : '❌'} ${n
 const cfg: SourceConfig = { intervalMinutes: 15, minDelayMs: 0, jitterMs: 0 };
 const store = new Store(':memory:');
 
-// --- 1ª corrida ingiere; 2ª (mismo contenido) hace skip ---
-const first = await runSource(store, new VenezuelaTeBuscaAdapter());
-check('1ª corrida: changed e ingiere los 4', first.outcome === 'changed' && first.fetched === 4);
-const second = await runSource(store, new VenezuelaTeBuscaAdapter());
+// --- 1ª corrida ingiere; 2ª (mismo contenido) hace skip --- (fuente HTML fixtures)
+const first = await runSource(store, new DesaparecidosTerremotoAdapter());
+check('1ª corrida: changed e ingiere los 3', first.outcome === 'changed' && first.fetched === 3);
+const second = await runSource(store, new DesaparecidosTerremotoAdapter());
 check('2ª corrida sin cambios: unchanged_hash, no reprocesa', second.outcome === 'unchanged_hash' && second.fetched === 0);
 
 // --- 304 Not Modified ---
@@ -47,8 +47,8 @@ check('parse que falla → error', (await runSource(store, badParse)).outcome ==
 // --- aislamiento: una fuente caída no impide ingerir otra ---
 const store2 = new Store(':memory:');
 await runSource(store2, boom);
-const good = await runSource(store2, new VenezuelaTeBuscaAdapter());
-check('una fuente caída no frena a las demás', good.outcome === 'changed' && good.fetched === 4);
+const good = await runSource(store2, new DesaparecidosTerremotoAdapter());
+check('una fuente caída no frena a las demás', good.outcome === 'changed' && good.fetched === 3);
 
 console.log(`\n${pass} OK, ${fail} fallidas`);
 process.exit(fail === 0 ? 0 : 1);
