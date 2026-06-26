@@ -2,16 +2,17 @@
  * Adaptador para "Estoy Aquí Venezuela" (estoyaquive.up.railway.app).
  * Plataforma ciudadana de desaparecidos del terremoto; trae CÉDULA.
  *
- * API real detectada en su bundle (backend en Railway). Endpoints útiles:
- *   GET /api/buscar           búsqueda (probablemente requiere query)
- *   GET /api/encontradas      personas reportadas como encontradas
- *   GET /api/estadisticas     totales
- *   GET /api/matches          cruces automáticos buscado/encontrado
+ * API real (backend en Railway):
+ *   GET /api/encontradas   → { total, items: [...] }  personas REPORTADAS A SALVO
+ *   GET /api/estadisticas  → { total_buscados, total_encontrados, matches_confirmados }
+ *   GET /api/buscar?q=|cedula=  búsqueda puntual (no hay listado masivo de buscados)
  *
- * ⚠️ CONECTAR LA FUENTE REAL: no se confirmó un endpoint de "listar todos los
- * desaparecidos". Inspeccioná con F12 → Network/XHR cuál devuelve el listado
- * completo, ponelo en ENDPOINT y ajustá parse() a la forma real del JSON.
- * Mientras ENDPOINT esté vacío, corre en modo FIXTURES (sin tocar su servidor).
+ * Conectamos /api/encontradas: trae a los YA ENCONTRADOS con cédula, que es
+ * justo la "buena noticia" que el agregador quiere propagar (status=localizado).
+ * El listado de buscados no se expone en bloque (solo búsqueda puntual), así que
+ * de esta fuente ingerimos los encontrados.
+ *
+ * Para volver a modo FIXTURES (offline), poné ENDPOINT = ''.
  */
 import { readFileSync } from 'node:fs';
 import type {
@@ -19,7 +20,7 @@ import type {
 } from '../types.ts';
 import { BaseHttpAdapter, politeFetch, DEFAULT_CONFIG } from './base.ts';
 
-const ENDPOINT = ''; // ← p. ej. 'https://estoyaquive.up.railway.app/api/...'
+const ENDPOINT = 'https://estoyaquive.up.railway.app/api/encontradas';
 
 export class EstoyAquiAdapter extends BaseHttpAdapter {
   readonly domain = 'estoyaquive.up.railway.app';
@@ -42,28 +43,34 @@ export class EstoyAquiAdapter extends BaseHttpAdapter {
     const data = JSON.parse(body);
     const items: any[] = Array.isArray(data)
       ? data
-      : (data.resultados ?? data.personas ?? data.data ?? data.records ?? []);
-    return items.map((it) => ({
-      sourceId: String(it.id ?? it._id ?? ''),
-      sourceUrl: it.id ? `https://${this.domain}/persona/${it.id}` : undefined,
-      fullName: it.nombre_completo ?? it.nombre ?? '',
-      cedula: it.cedula ?? it.documento ?? undefined,
-      age: it.edad != null ? Number(it.edad) : undefined,
-      gender: it.genero ?? it.sexo ?? undefined,
-      state: it.estado ?? undefined,
-      city: it.municipio ?? it.ciudad ?? undefined,
-      reference: it.descripcion ?? it.sector ?? it.lugar ?? undefined,
-      photoUrl: it.foto_url ?? it.foto ?? undefined,
-      status: mapStatus(it.estatus ?? it.estado_busqueda ?? it.status),
-      lastSeenAt: it.visto_por_ultima_vez ?? it.fecha ?? undefined,
-      raw: it,
-    }));
+      : (data.items ?? data.resultados ?? data.personas ?? data.data ?? data.records ?? []);
+    return items.map((it) => {
+      // /api/encontradas devuelve personas ya halladas → la buena noticia.
+      const yaHallado =
+        it.estado_salud != null || it.ubicacion_actual != null || it.reportado_por != null;
+      return {
+        sourceId: String(it.id ?? it._id ?? ''),
+        sourceUrl: `https://${this.domain}/`,
+        fullName: it.nombre_completo ?? it.nombre ?? '',
+        cedula: it.cedula ?? it.documento ?? undefined,
+        age: it.edad_aproximada != null ? Number(it.edad_aproximada)
+          : it.edad != null ? Number(it.edad) : undefined,
+        gender: it.genero ?? it.sexo ?? undefined,
+        state: it.estado ?? undefined,
+        city: it.municipio ?? it.ciudad ?? undefined,
+        reference: it.ubicacion_actual ?? it.descripcion_fisica ?? it.descripcion ?? it.sector ?? undefined,
+        photoUrl: it.foto_url ?? it.foto ?? undefined,
+        status: mapStatus(it.estatus ?? it.estado_busqueda ?? it.status, yaHallado),
+        lastSeenAt: it.fecha_reporte ?? it.visto_por_ultima_vez ?? it.fecha ?? undefined,
+        raw: it,
+      };
+    });
   }
 }
 
-function mapStatus(s?: string): Status {
+function mapStatus(s: string | undefined, yaHallado = false): Status {
   const v = (s ?? '').toLowerCase();
-  if (v.includes('localiz') || v.includes('encontr') || v.includes('safe') || v.includes('salvo'))
+  if (yaHallado || v.includes('localiz') || v.includes('encontr') || v.includes('safe') || v.includes('salvo'))
     return 'localizado';
   return 'sin_contacto';
 }

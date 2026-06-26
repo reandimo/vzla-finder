@@ -14,7 +14,7 @@ import type {
 } from '../types.ts';
 
 const USER_AGENT =
-  'vzla-finder/0.1 (agregador solidario de desaparecidos; contacto: TU_EMAIL)';
+  'vzla-finder/1.0 (agregador solidario de desaparecidos; +https://vzlafinder.reandimo.dev)';
 
 export const DEFAULT_CONFIG: SourceConfig = {
   intervalMinutes: 15,
