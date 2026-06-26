@@ -162,6 +162,18 @@
     font-size: 13px; color: var(--muted);
   }
   footer p { margin: 0 0 8px; }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+  .emergency {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: var(--waiting-bg); border: 1px solid #e9d7c7; border-radius: 12px;
+    padding: 12px 14px; margin: 0 0 14px; color: var(--ink);
+  }
+  .emergency .siren { font-size: 18px; line-height: 1.3; flex: none; }
+  .emergency b { color: var(--waiting); }
+  .emergency .tel { font-weight: 700; font-size: 16px; color: var(--waiting); white-space: nowrap; }
+  .colofon { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+  .colofon a { font-weight: 600; }
 
   @media (prefers-reduced-motion: no-preference) {
     .card { animation: rise .22s ease both; }
@@ -208,11 +220,29 @@
   </section>
 
   <footer>
+    <div class="emergency">
+      <span class="siren" aria-hidden="true">🚨</span>
+      <div>
+        <b>¿Es una emergencia?</b> Llamá a la línea nacional de gestión de riesgos
+        y Protección Civil: <a href="tel:171" class="tel">171</a>.
+        Si hay alguien atrapado o herido, ese es el primer contacto.
+      </div>
+    </div>
     <p>Los datos provienen de registros ciudadanos y pueden estar incompletos o
        desactualizados. Para contactar a quien reportó un caso, entrá al enlace de
        la fuente original.</p>
     <p>Si encontrás a una persona, avisá en la plataforma donde está reportada para
        que se actualice su estado.</p>
+    <div class="colofon">
+      <p>
+        Proyecto solidario de código abierto, hecho por
+        <a href="https://github.com/reandimo" target="_blank" rel="noopener noreferrer">Renan Díaz</a>.
+        ¿Encontraste un error o querés sumar una fuente?
+        Escribí a <a href="mailto:reandimo23@gmail.com">reandimo23@gmail.com</a>
+        o abrí un issue en el
+        <a href="https://github.com/reandimo/vzla-finder" target="_blank" rel="noopener noreferrer">repositorio en GitHub</a>.
+      </p>
+    </div>
   </footer>
 </div>
 
