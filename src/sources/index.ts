@@ -4,12 +4,15 @@
  */
 import type { SourceAdapter } from '../types.ts';
 import { VenezuelaTeBuscaAdapter } from './venezuelatebusca.ts';
-import { DesaparecidosTerremotoAdapter } from './desaparecidos.ts';
 import { EstoyAquiAdapter } from './estoyaqui.ts';
 
+// Solo fuentes con scraping REAL: no inyectamos datos sintéticos en producción.
+//
+// desaparecidos.ts NO se incluye: su API exige verificación reCAPTCHA, así que
+// no es scrapeable por automatización (respetamos su protección). El adaptador
+// y su fixture quedan para los tests. venezuelareporta.org (API Supabase) es la
+// próxima candidata a sumar.
 export const adapters: SourceAdapter[] = [
-  new VenezuelaTeBuscaAdapter(),          // JSON, trae cédula
-  new DesaparecidosTerremotoAdapter(),    // HTML (cheerio)
-  new EstoyAquiAdapter(),                 // JSON (Railway), trae cédula
-  // new VenezuelaReportaAdapter(),
+  new VenezuelaTeBuscaAdapter(),   // React Router /_root.data (turbo-stream), trae cédula
+  new EstoyAquiAdapter(),          // API JSON /api/encontradas, trae cédula
 ];
