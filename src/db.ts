@@ -82,6 +82,15 @@ export class Store {
         fetched_at    TEXT NOT NULL,
         ok            INTEGER NOT NULL
       );
+
+      -- Sugerencias de nuevas fuentes que mandan los visitantes desde el landing.
+      CREATE TABLE IF NOT EXISTS source_suggestions (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        name       TEXT,
+        url        TEXT NOT NULL,
+        note       TEXT,
+        created_at TEXT NOT NULL
+      );
     `);
   }
 
@@ -208,6 +217,24 @@ export class Store {
 
   allPersons(): PersonRecord[] {
     return (this.db.prepare('SELECT * FROM persons').all() as any[]).map(rowToPerson);
+  }
+
+  // --- sugerencias de fuentes ---
+  addSourceSuggestion(s: { name: string | null; url: string; note: string | null; createdAt: string }) {
+    this.db
+      .prepare(
+        `INSERT INTO source_suggestions (name, url, note, created_at) VALUES (?,?,?,?)`,
+      )
+      .run(s.name, s.url, s.note, s.createdAt);
+  }
+
+  listSourceSuggestions(): { id: number; name: string | null; url: string; note: string | null; createdAt: string }[] {
+    const rows = this.db
+      .prepare('SELECT * FROM source_suggestions ORDER BY created_at DESC')
+      .all();
+    return (rows as any[]).map((r) => ({
+      id: r.id, name: r.name, url: r.url, note: r.note, createdAt: r.created_at,
+    }));
   }
 
   // --- snapshots (cache de fuentes) ---

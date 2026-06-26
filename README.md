@@ -96,11 +96,19 @@ Hoy corre en modo **fixtures** para no tocar servidores ajenos. En el adaptador:
 expone la búsqueda y sirve el frontend:
 
 - `GET /api/search?cedula=V-12.345.678` · `GET /api/search?name=jose%20perez`
-- Las respuestas pasan por el **query cache** (TTL) para absorber picos.
+  - Acepta cédula venezolana (`V-`) y de **extranjero** (`E-`); el prefijo se
+    conserva, así que `E-84.111.222` nunca colisiona con `V-84.111.222`.
+- `GET /api/sources` — fuentes que el agregador consulta hoy (dominio, cada
+  cuánto se sincroniza, última traída).
+- `POST /api/suggest-source` — recibe sugerencias de nuevas fuentes desde el
+  popup del landing (`{ url, name?, note? }`), persistidas en `source_suggestions`.
+- Las respuestas de búsqueda pasan por el **query cache** (TTL) para absorber picos.
 - El frontend (`public/index.html`) detecta solo si escribís cédula o nombre,
-  muestra el **estado consolidado** (Localizado / Sin contacto) y los enlaces de
-  vuelta a cada fuente. Sin fuentes ni dependencias externas: carga rápido y
-  funciona en redes malas.
+  muestra el **estado consolidado** (Localizado / Sin contacto) con datos ricos
+  para distinguir homónimos (edad, género, sector/referencia y foto) y los
+  enlaces de vuelta a cada fuente. Además lista las **fuentes consultadas** y
+  permite **sugerir nuevas**. Sin dependencias externas: carga rápido y funciona
+  en redes malas.
 
 Pensado para correr detrás de Cloudflare (edge cache = primera línea).
 

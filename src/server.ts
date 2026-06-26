@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { Store } from './db.ts';
 import { searchByCedula, searchByName } from './search.ts';
 import { QueryCache } from './cache.ts';
+import { adapters } from './sources/index.ts';
 import type { ConsolidatedPerson } from './types.ts';
 
 const DB_PATH = process.env.VZLA_DB ?? 'data.db';
@@ -38,6 +39,12 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === '/api/search') {
       return handleSearch(url, res);
+    }
+    if (url.pathname === '/api/sources' && req.method === 'GET') {
+      return handleSources(res);
+    }
+    if (url.pathname === '/api/suggest-source' && req.method === 'POST') {
+      return handleSuggestSource(req, res);
     }
     return serveStatic(url.pathname, res);
   } catch (err) {
@@ -68,6 +75,70 @@ function handleSearch(url: URL, res: any) {
 
   res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify({ count: results.length, results }));
+}
+
+/** Lista de fuentes que el agregador consulta hoy (para mostrarlas en el landing). */
+function handleSources(res: any) {
+  const sources = adapters.map((a) => {
+    const snap = store.getSnapshot(a.domain);
+    return {
+      domain: a.domain,
+      url: `https://${a.domain}`,
+      everyMinutes: a.config.intervalMinutes,
+      lastFetched: snap?.fetchedAt ?? null,
+      ok: snap ? snap.ok : null,
+    };
+  });
+  res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.end(JSON.stringify({ count: sources.length, sources }));
+}
+
+/** Recibe una sugerencia de nueva fuente desde el popup del landing. */
+async function handleSuggestSource(req: any, res: any) {
+  let body: any;
+  try {
+    body = await readJson(req);
+  } catch {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'JSON inválido.' }));
+    return;
+  }
+
+  const url = String(body?.url ?? '').trim();
+  const name = String(body?.name ?? '').trim();
+  const note = String(body?.note ?? '').trim();
+
+  // Validación mínima: tiene que parecer un enlace.
+  if (!/^https?:\/\/\S+\.\S+/i.test(url) || url.length > 2000) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Indicá un enlace válido (http/https) de la plataforma.' }));
+    return;
+  }
+
+  store.addSourceSuggestion({
+    name: name.slice(0, 200) || null,
+    url: url.slice(0, 2000),
+    note: note.slice(0, 1000) || null,
+    createdAt: new Date().toISOString(),
+  });
+
+  res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.end(JSON.stringify({ ok: true }));
+}
+
+/** Lee el cuerpo de un request como JSON, con tope de tamaño para evitar abusos. */
+function readJson(req: any): Promise<any> {
+  return new Promise((resolve, reject) => {
+    let raw = '';
+    req.on('data', (chunk: Buffer) => {
+      raw += chunk;
+      if (raw.length > 16_384) { reject(new Error('payload too large')); req.destroy(); }
+    });
+    req.on('end', () => {
+      try { resolve(raw ? JSON.parse(raw) : {}); } catch (e) { reject(e); }
+    });
+    req.on('error', reject);
+  });
 }
 
 async function serveStatic(pathname: string, res: any) {

@@ -72,9 +72,17 @@
   .banner.waiting { background: var(--waiting-bg); color: var(--waiting); }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
   .body { padding: 14px 16px 16px; }
+  .identity { display: flex; gap: 14px; align-items: flex-start; }
+  .photo {
+    width: 64px; height: 64px; border-radius: 10px; object-fit: cover;
+    background: #eef1f5; border: 1px solid var(--line); flex: none;
+  }
+  .idtext { min-width: 0; }
   .name { font-size: 18px; font-weight: 700; margin: 0 0 6px; letter-spacing: -.01em; }
   .meta { color: var(--muted); font-size: 14px; margin: 0 0 4px; }
   .meta b { color: var(--ink); font-weight: 600; }
+  .ref { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+  .ref b { color: var(--ink); font-weight: 600; }
   .resolved { color: var(--safe); font-size: 13px; margin: 6px 0 0; }
 
   .sources {
@@ -99,6 +107,55 @@
     padding: 22px 18px; color: var(--muted);
   }
   .empty b { color: var(--ink); }
+
+  /* Panel de fuentes consultadas */
+  .panel {
+    margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line);
+  }
+  .panel-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+  }
+  .panel-head h2 { font-size: 16px; margin: 0; font-weight: 700; letter-spacing: -.01em; }
+  .panel-head p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+  .ghost {
+    background: transparent; color: var(--accent); border: 1px solid var(--line);
+    padding: 8px 14px; border-radius: 9px; font-size: 14px;
+  }
+  .ghost:hover { border-color: var(--accent); background: #fbfcfd; }
+  .source-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .source-row {
+    display: flex; align-items: center; gap: 10px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+  }
+  .source-row .live { width: 8px; height: 8px; border-radius: 50%; background: var(--safe); flex: none; }
+  .source-row .live.off { background: var(--line); }
+  .source-row a { color: var(--ink); font-weight: 600; text-decoration: none; }
+  .source-row a:hover { color: var(--accent); }
+  .source-row .when { margin-left: auto; font-size: 12px; color: var(--muted); }
+
+  /* Modal sugerir fuente */
+  .modal[hidden] { display: none; }
+  .modal {
+    position: fixed; inset: 0; background: rgba(20,30,45,.45);
+    display: flex; align-items: center; justify-content: center; padding: 18px; z-index: 50;
+  }
+  .modal-card {
+    background: var(--card); border-radius: 14px; width: 100%; max-width: 460px;
+    padding: 22px 20px; box-shadow: 0 18px 50px rgba(20,30,45,.25);
+  }
+  .modal-card h2 { margin: 0 0 6px; font-size: 18px; }
+  .modal-card p.sub { margin: 0 0 16px; font-size: 14px; color: var(--muted); }
+  .modal-card label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 4px; }
+  .modal-card input, .modal-card textarea {
+    width: 100%; border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px;
+    font: inherit; font-size: 15px; color: var(--ink); background: #fbfcfd;
+  }
+  .modal-card textarea { resize: vertical; min-height: 64px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+  .modal-msg { font-size: 13px; margin: 10px 0 0; min-height: 18px; }
+  .modal-msg.ok { color: var(--safe); }
+  .modal-msg.err { color: var(--waiting); }
 
   footer {
     margin-top: 30px; padding-top: 18px; border-top: 1px solid var(--line);
@@ -127,15 +184,28 @@
     <div class="field">
       <label for="q" class="sr-only" style="position:absolute;left:-9999px">Buscar por cédula o nombre</label>
       <input id="q" type="search" inputmode="search"
-             placeholder="Cédula (V-12.345.678) o nombre completo"
+             placeholder="Cédula (V- o E-) o nombre completo"
              autocomplete="off" autofocus />
       <button type="submit">Buscar</button>
     </div>
-    <p class="hint">Con cédula la coincidencia es exacta. Por nombre puede haber varios resultados parecidos.</p>
+    <p class="hint">Funciona con cédula venezolana <b>V-</b> y de extranjero <b>E-</b>: la coincidencia es exacta. Por nombre puede haber varias personas parecidas — fijate en edad, zona y foto para distinguirlas.</p>
   </form>
 
   <div id="status" role="status" aria-live="polite"></div>
   <div id="results"></div>
+
+  <section class="panel" aria-labelledby="sources-title">
+    <div class="panel-head">
+      <div>
+        <h2 id="sources-title">Dónde buscamos</h2>
+        <p>Reunimos los reportes de estas plataformas ciudadanas en una sola búsqueda.</p>
+      </div>
+      <button type="button" class="ghost" id="suggest-open">Sugerir otra fuente</button>
+    </div>
+    <ul class="source-list" id="source-list">
+      <li class="source-row"><span class="live off"></span><span>Cargando fuentes…</span></li>
+    </ul>
+  </section>
 
   <footer>
     <p>Los datos provienen de registros ciudadanos y pueden estar incompletos o
@@ -144,6 +214,26 @@
     <p>Si encontrás a una persona, avisá en la plataforma donde está reportada para
        que se actualice su estado.</p>
   </footer>
+</div>
+
+<div class="modal" id="suggest-modal" hidden role="dialog" aria-modal="true" aria-labelledby="suggest-title">
+  <div class="modal-card">
+    <h2 id="suggest-title">Sugerir una fuente</h2>
+    <p class="sub">¿Conocés otra plataforma que reporte desaparecidos del terremoto? Pasanos el enlace y la sumamos a la búsqueda.</p>
+    <form id="suggest-form">
+      <label for="s-url">Enlace de la plataforma *</label>
+      <input id="s-url" type="url" inputmode="url" placeholder="https://ejemplo.org" required />
+      <label for="s-name">Nombre del sitio (opcional)</label>
+      <input id="s-name" type="text" placeholder="Ej: Venezuela Reporta" />
+      <label for="s-note">Comentario (opcional)</label>
+      <textarea id="s-note" placeholder="Algo que nos ayude a entender la fuente…"></textarea>
+      <p class="modal-msg" id="suggest-msg" role="status" aria-live="polite"></p>
+      <div class="modal-actions">
+        <button type="button" class="ghost" id="suggest-cancel">Cancelar</button>
+        <button type="submit">Enviar sugerencia</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script>
@@ -175,12 +265,22 @@
       const card = document.createElement('article');
       card.className = 'card';
 
+      const genderLabel = { M: 'Hombre', F: 'Mujer' }[p.gender] || (p.gender ? esc(p.gender) : null);
       const meta = [
         p.cedula ? `<b>${esc(p.cedula)}</b>` : null,
         p.age != null ? `${esc(p.age)} años` : null,
+        genderLabel,
         p.lastSeenState ? esc(p.lastSeenState) : null,
         p.lastSeenCity ? esc(p.lastSeenCity) : null,
       ].filter(Boolean).join(' · ');
+
+      // Sector/referencia: clave para distinguir a dos personas con el mismo nombre.
+      const ref = p.lastSeenRef
+        ? `<p class="ref">Última referencia: <b>${esc(p.lastSeenRef)}</b></p>` : '';
+      // Foto: ayuda a confirmar identidad cuando no hay cédula. Si no carga, se oculta.
+      const photo = p.photoUrl
+        ? `<img class="photo" src="${esc(p.photoUrl)}" alt="" loading="lazy"
+                onerror="this.remove()" />` : '';
 
       const chips = p.sources.map((s) => {
         const label = esc(s.sourceDomain);
@@ -194,9 +294,15 @@
           <span class="dot"></span>${safe ? 'Localizado' : 'Sin contacto'}
         </div>
         <div class="body">
-          <p class="name">${esc(p.fullName)}</p>
-          <p class="meta">${meta || '—'}</p>
-          ${safe && p.resolvedBy ? `<p class="resolved">Reportado a salvo por ${esc(p.resolvedBy)}.</p>` : ''}
+          <div class="identity">
+            ${photo}
+            <div class="idtext">
+              <p class="name">${esc(p.fullName)}</p>
+              <p class="meta">${meta || '—'}</p>
+              ${ref}
+              ${safe && p.resolvedBy ? `<p class="resolved">Reportado a salvo por ${esc(p.resolvedBy)}.</p>` : ''}
+            </div>
+          </div>
           <div class="sources">
             <div class="sources-label">Reportado en ${p.sources.length} fuente${p.sources.length === 1 ? '' : 's'}</div>
             <div class="chips">${chips}</div>
@@ -229,6 +335,94 @@
     const q = input.value.trim();
     if (q.length >= 2) search(q);
     else statusEl.textContent = 'Escribí al menos 2 caracteres.';
+  });
+
+  // --- Fuentes consultadas ---
+  function timeAgo(iso) {
+    if (!iso) return 'sin sincronizar';
+    const diff = Date.now() - new Date(iso).getTime();
+    if (isNaN(diff)) return '';
+    const min = Math.round(diff / 60000);
+    if (min < 1) return 'recién';
+    if (min < 60) return `hace ${min} min`;
+    const h = Math.round(min / 60);
+    if (h < 24) return `hace ${h} h`;
+    return `hace ${Math.round(h / 24)} d`;
+  }
+
+  async function loadSources() {
+    const list = document.getElementById('source-list');
+    try {
+      const res = await fetch('/api/sources');
+      const data = await res.json();
+      if (!data.sources || !data.sources.length) {
+        list.innerHTML = '<li class="source-row"><span class="live off"></span><span>Sin fuentes configuradas.</span></li>';
+        return;
+      }
+      list.innerHTML = data.sources.map((s) => {
+        const off = s.ok === false ? ' off' : '';
+        return `<li class="source-row">
+          <span class="live${off}" title="${s.ok === false ? 'última sincronización con error' : 'activa'}"></span>
+          <a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.domain)}</a>
+          <span class="when">${esc(timeAgo(s.lastFetched))}</span>
+        </li>`;
+      }).join('');
+    } catch {
+      list.innerHTML = '<li class="source-row"><span class="live off"></span><span>No se pudo cargar la lista de fuentes.</span></li>';
+    }
+  }
+  loadSources();
+
+  // --- Popup: sugerir nueva fuente ---
+  const modal = document.getElementById('suggest-modal');
+  const suggestForm = document.getElementById('suggest-form');
+  const suggestMsg = document.getElementById('suggest-msg');
+
+  function openModal() {
+    modal.hidden = false;
+    document.getElementById('s-url').focus();
+  }
+  function closeModal() {
+    modal.hidden = true;
+    suggestMsg.textContent = '';
+    suggestMsg.className = 'modal-msg';
+    suggestForm.reset();
+  }
+
+  document.getElementById('suggest-open').addEventListener('click', openModal);
+  document.getElementById('suggest-cancel').addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.hidden) closeModal(); });
+
+  suggestForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+      url: document.getElementById('s-url').value.trim(),
+      name: document.getElementById('s-name').value.trim(),
+      note: document.getElementById('s-note').value.trim(),
+    };
+    suggestMsg.className = 'modal-msg';
+    suggestMsg.textContent = 'Enviando…';
+    try {
+      const res = await fetch('/api/suggest-source', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        suggestMsg.className = 'modal-msg err';
+        suggestMsg.textContent = data.error || 'No se pudo enviar. Reintentá.';
+        return;
+      }
+      suggestMsg.className = 'modal-msg ok';
+      suggestMsg.textContent = '¡Gracias! La revisaremos para sumarla.';
+      suggestForm.reset();
+      setTimeout(closeModal, 1600);
+    } catch {
+      suggestMsg.className = 'modal-msg err';
+      suggestMsg.textContent = 'No se pudo conectar. Reintentá en unos segundos.';
+    }
   });
 </script>
 </body>

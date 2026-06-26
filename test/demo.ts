@@ -91,5 +91,17 @@ const maria = searchByName(store, 'Maria Rodriguez');
 check('búsqueda por nombre devuelve a la persona correcta',
   maria.some((m) => m.fullName.includes('María Fernanda')));
 
+// --- Escenario 5: extranjero (cédula E-) se busca igual y NO colisiona con V ---
+feed('venezuelatebusca.com',
+  { sourceId: 'E1', fullName: 'Giuseppe Antonio Bianchi', cedula: 'E-84.111.222', age: 53, state: 'La Guaira' },
+  'sin_contacto');
+
+const giuseppe = searchByCedula(store, 'E-84.111.222');
+check('extranjero: cédula E- se encuentra', giuseppe != null);
+check('extranjero: conserva el prefijo E en la forma canónica',
+  giuseppe?.cedula === 'E84111222');
+check('extranjero: E-84.111.222 NO colisiona con un V-84.111.222 inexistente',
+  searchByCedula(store, 'V-84.111.222') == null);
+
 console.log(`\n${pass} pruebas OK, ${fail} fallidas`);
 process.exit(fail === 0 ? 0 : 1);
