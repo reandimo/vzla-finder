@@ -6,8 +6,8 @@
 # (ETag / Last-Modified / hash), así que si una fuente no cambió NO se re-ingiere:
 # correrlo cada 15 min es barato y cortés con cada silo.
 #
-# Pensado para cPanel / CloudLinux (Node.js Selector). Crontab sugerido:
-#   */15 * * * * /home/USUARIO/vzla-finder/scripts/cron-ingest.sh
+# Pensado para cPanel / CloudLinux (Node.js Selector). Crontab sugerido (cada hora):
+#   0 * * * * /bin/bash /home/USUARIO/vzla-finder/scripts/cron-ingest.sh
 #
 # Variables de entorno opcionales:
 #   APP_ROOT   raíz de la app        (default: el padre de este script)
@@ -31,6 +31,9 @@ if ! flock -n 9; then
   echo "$(date -Is) [skip] ya hay una ingesta en curso" >> "$LOG"
   exit 0
 fi
+
+# Jitter: no pegarle a las fuentes justo en el minuto exacto del cron.
+sleep $(( RANDOM % 60 ))
 
 cd "$APP_ROOT"
 echo "$(date -Is) [start] ingesta" >> "$LOG"

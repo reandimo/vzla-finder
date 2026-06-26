@@ -59,7 +59,7 @@ function findPersons(node: any, depth = 0): any[] | null {
 
 export class VenezuelaTeBuscaAdapter extends BaseHttpAdapter {
   readonly domain = 'venezuelatebusca.com';
-  readonly config: SourceConfig = { ...DEFAULT_CONFIG, intervalMinutes: 15 };
+  readonly config: SourceConfig = { ...DEFAULT_CONFIG, intervalMinutes: 60 };
 
   protected url() {
     return `${BASE}/_root.data`;

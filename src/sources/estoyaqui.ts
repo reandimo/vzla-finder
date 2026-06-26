@@ -24,7 +24,7 @@ const ENDPOINT = 'https://estoyaquive.up.railway.app/api/encontradas';
 
 export class EstoyAquiAdapter extends BaseHttpAdapter {
   readonly domain = 'estoyaquive.up.railway.app';
-  readonly config: SourceConfig = { ...DEFAULT_CONFIG, intervalMinutes: 15 };
+  readonly config: SourceConfig = { ...DEFAULT_CONFIG, intervalMinutes: 60 };
 
   protected url() {
     return ENDPOINT;
