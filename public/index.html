@@ -185,10 +185,10 @@
 <div class="wrap">
   <header>
     <div class="kicker">Búsqueda unificada</div>
-    <h1>Buscá una persona en todos los registros a la vez</h1>
+    <h1>Busca a una persona en todos los registros a la vez</h1>
     <p class="lede">
       Reúne los reportes de varias plataformas ciudadanas en un solo lugar.
-      Si alguien ya fue reportado a salvo en cualquiera de ellas, lo vas a ver acá.
+      Si alguien ya fue reportado a salvo en cualquiera de ellas, lo verás aquí.
     </p>
   </header>
 
@@ -200,7 +200,7 @@
              autocomplete="off" autofocus />
       <button type="submit">Buscar</button>
     </div>
-    <p class="hint">Funciona con cédula venezolana <b>V-</b> y de extranjero <b>E-</b>: la coincidencia es exacta. Por nombre puede haber varias personas parecidas — fijate en edad, zona y foto para distinguirlas.</p>
+    <p class="hint">Funciona con cédula venezolana <b>V-</b> y de extranjero <b>E-</b>: la coincidencia es exacta. Por nombre puede haber varias personas parecidas — fíjate en la edad, la zona y la foto para distinguirlas.</p>
   </form>
 
   <div id="status" role="status" aria-live="polite"></div>
@@ -223,23 +223,23 @@
     <div class="emergency">
       <span class="siren" aria-hidden="true">🚨</span>
       <div>
-        <b>¿Es una emergencia?</b> Llamá a la línea nacional de gestión de riesgos
+        <b>¿Es una emergencia?</b> Llama a la línea nacional de gestión de riesgos
         y Protección Civil: <a href="tel:171" class="tel">171</a>.
         Si hay alguien atrapado o herido, ese es el primer contacto.
       </div>
     </div>
     <p>Los datos provienen de registros ciudadanos y pueden estar incompletos o
-       desactualizados. Para contactar a quien reportó un caso, entrá al enlace de
+       desactualizados. Para contactar a quien reportó un caso, entra al enlace de
        la fuente original.</p>
-    <p>Si encontrás a una persona, avisá en la plataforma donde está reportada para
+    <p>Si encuentras a una persona, avisa en la plataforma donde está reportada para
        que se actualice su estado.</p>
     <div class="colofon">
       <p>
         Proyecto solidario de código abierto, hecho por
         <a href="https://github.com/reandimo" target="_blank" rel="noopener noreferrer">Renan Díaz</a>.
-        ¿Encontraste un error o querés sumar una fuente?
-        Escribí a <a href="mailto:reandimo23@gmail.com">reandimo23@gmail.com</a>
-        o abrí un issue en el
+        ¿Encontraste un error o quieres sumar una fuente?
+        Escribe a <a href="mailto:reandimo23@gmail.com">reandimo23@gmail.com</a>
+        o abre un issue en el
         <a href="https://github.com/reandimo/vzla-finder" target="_blank" rel="noopener noreferrer">repositorio en GitHub</a>.
       </p>
     </div>
@@ -249,7 +249,7 @@
 <div class="modal" id="suggest-modal" hidden role="dialog" aria-modal="true" aria-labelledby="suggest-title">
   <div class="modal-card">
     <h2 id="suggest-title">Sugerir una fuente</h2>
-    <p class="sub">¿Conocés otra plataforma que reporte desaparecidos del terremoto? Pasanos el enlace y la sumamos a la búsqueda.</p>
+    <p class="sub">¿Conoces otra plataforma que reporte desaparecidos del terremoto? Pásanos el enlace y la sumamos a la búsqueda.</p>
     <form id="suggest-form">
       <label for="s-url">Enlace de la plataforma *</label>
       <input id="s-url" type="url" inputmode="url" placeholder="https://ejemplo.org" required />
@@ -286,8 +286,8 @@
     resultsEl.innerHTML = '';
     if (!data.results.length) {
       resultsEl.innerHTML =
-        '<div class="empty">Sin coincidencias todavía. Probá con otra forma del ' +
-        'nombre, o con la <b>cédula</b> si la tenés: es la búsqueda más precisa.</div>';
+        '<div class="empty">Sin coincidencias todavía. Prueba con otra forma del ' +
+        'nombre, o con la <b>cédula</b> si la tienes: es la búsqueda más precisa.</div>';
       return;
     }
     for (const p of data.results) {
@@ -356,7 +356,7 @@
         : `${n} resultado${n === 1 ? '' : 's'}${param === 'cedula' ? ' por cédula' : ' por nombre'}.`;
       render(data);
     } catch {
-      statusEl.textContent = 'No se pudo conectar. Reintentá en unos segundos.';
+      statusEl.textContent = 'No se pudo conectar. Reintenta en unos segundos.';
     }
   }
 
@@ -364,7 +364,7 @@
     e.preventDefault();
     const q = input.value.trim();
     if (q.length >= 2) search(q);
-    else statusEl.textContent = 'Escribí al menos 2 caracteres.';
+    else statusEl.textContent = 'Escribe al menos 2 caracteres.';
   });
 
   // --- Fuentes consultadas ---
@@ -373,7 +373,7 @@
     const diff = Date.now() - new Date(iso).getTime();
     if (isNaN(diff)) return '';
     const min = Math.round(diff / 60000);
-    if (min < 1) return 'recién';
+    if (min < 1) return 'hace un momento';
     if (min < 60) return `hace ${min} min`;
     const h = Math.round(min / 60);
     if (h < 24) return `hace ${h} h`;
@@ -442,7 +442,7 @@
       const data = await res.json();
       if (!res.ok) {
         suggestMsg.className = 'modal-msg err';
-        suggestMsg.textContent = data.error || 'No se pudo enviar. Reintentá.';
+        suggestMsg.textContent = data.error || 'No se pudo enviar. Reintenta.';
         return;
       }
       suggestMsg.className = 'modal-msg ok';
@@ -451,7 +451,7 @@
       setTimeout(closeModal, 1600);
     } catch {
       suggestMsg.className = 'modal-msg err';
-      suggestMsg.textContent = 'No se pudo conectar. Reintentá en unos segundos.';
+      suggestMsg.textContent = 'No se pudo conectar. Reintenta en unos segundos.';
     }
   });
 </script>

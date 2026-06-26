@@ -69,7 +69,7 @@ function handleSearch(url: URL, res: any) {
     results = cache.wrap(key, () => searchByName(store, name));
   } else {
     res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Indicá ?cedula= o ?name= (mín. 2 caracteres).' }));
+    res.end(JSON.stringify({ error: 'Indica ?cedula= o ?name= (mín. 2 caracteres).' }));
     return;
   }
 
@@ -111,7 +111,7 @@ async function handleSuggestSource(req: any, res: any) {
   // Validación mínima: tiene que parecer un enlace.
   if (!/^https?:\/\/\S+\.\S+/i.test(url) || url.length > 2000) {
     res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Indicá un enlace válido (http/https) de la plataforma.' }));
+    res.end(JSON.stringify({ error: 'Indica un enlace válido (http/https) de la plataforma.' }));
     return;
   }
 
