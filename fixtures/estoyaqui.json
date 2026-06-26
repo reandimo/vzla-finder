@@ -1,0 +1,27 @@
+[
+  {
+    "id": "eaq-77",
+    "nombre_completo": "Luis Alberto Contreras",
+    "cedula": "V-18.992.103",
+    "edad": 37,
+    "sexo": "M",
+    "estado": "Aragua",
+    "municipio": "Maracay",
+    "descripcion": "Visto cerca del río el día del sismo, camisa azul",
+    "foto_url": "https://estoyaquive.up.railway.app/img/eaq-77.jpg",
+    "estatus": "buscando",
+    "visto_por_ultima_vez": "2026-06-24T17:30:00-04:00"
+  },
+  {
+    "id": "eaq-78",
+    "nombre_completo": "Ana Lucía Méndez",
+    "cedula": "V-25.110.488",
+    "edad": 22,
+    "sexo": "F",
+    "estado": "Carabobo",
+    "municipio": "Valencia",
+    "descripcion": "Reportada a salvo en un refugio de Valencia",
+    "estatus": "encontrada",
+    "visto_por_ultima_vez": "2026-06-25T09:00:00-04:00"
+  }
+]

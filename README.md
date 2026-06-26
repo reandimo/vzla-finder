@@ -1,158 +1,160 @@
-# vzla-finder
+<div align="center">
 
-Agregador solidario de registros de desaparecidos tras el terremoto de Venezuela (2026).
+# 🟡🔵🔴 vzla-finder
 
-Hay 4–5 silos ciudadanos creados por separado (venezuelatebusca.com,
-desaparecidosterremotovenezuela.com, venezuelareporta.org, terremotovenezuela.com)
-que **no cruzan datos entre sí**. Una familia tiene que buscar en cada uno, y los
-duplicados y los "ya apareció" sin actualizar se acumulan. Esto unifica la búsqueda
-sobre todos, sin re-hostear más datos de los necesarios.
+### Un solo buscador para encontrar a los desaparecidos del terremoto de Venezuela
 
-## Qué hace
+Hay varias plataformas ciudadanas reportando personas desaparecidas, pero **ninguna cruza datos con la otra**.
+Una familia tiene que buscar en cada una, por separado, una y otra vez.
+**vzla-finder reúne todas en una sola búsqueda** — y si alguien ya fue reportado a salvo en cualquiera de ellas, lo ves al instante.
 
-- **Ingesta** registros públicos de cada silo mediante un *adaptador* por fuente.
-- **Normaliza** a un modelo común estilo PFIF (persona + procedencia + notas de estado).
-- **Deduplica** en capas: cédula (match exacto, merge seguro entre silos) y, sin
-  cédula, nombre + edad ± margen + estado → *sugerencia* para revisión humana.
-  **Nunca** fusiona solo.
-- **Reconcilia estado**: si cualquier fuente marca "localizado", la buena noticia
-  gana, con quién y cuándo lo reportó.
-- **Cachea de nuestro lado** y **scrapea en schedule** (default 15 min por fuente),
-  con requests condicionales para no re-descargar lo que no cambió.
-- **Búsqueda unificada** por cédula o nombre, con links de vuelta a cada fuente.
+<br/>
 
-## Arquitectura de scraping (cada página difiere)
+[![Demo en vivo](https://img.shields.io/badge/🔎_Buscar_ahora-vzlafinder.reandimo.dev-0f6e6e?style=for-the-badge)](https://vzlafinder.reandimo.dev)
 
-La pieza clave es separar **cómo se trae** de **cómo se parsea**:
+[![Licencia: MIT](https://img.shields.io/badge/Licencia-MIT-1f8a5b.svg)](LICENSE)
+![Node](https://img.shields.io/badge/Node-22%2B-339933?logo=node.js&logoColor=white)
+![Sin dependencias en runtime](https://img.shields.io/badge/server-node%3Ahttp%20%2B%20node%3Asqlite-555)
+![Proyecto solidario](https://img.shields.io/badge/proyecto-altruista%20%C2%B7%20sin%20fines%20de%20lucro-b0673a)
+![PRs welcome](https://img.shields.io/badge/PRs-bienvenidos-1f6feb)
 
-- **Fetch (compartido, `src/sources/base.ts`)** — cortesía por host (throttle con
-  `minDelayMs`), requests condicionales (`ETag` / `Last-Modified`), timeout y
-  `User-Agent` identificable. Esto NO se reescribe por fuente.
-- **Parse (por fuente)** — cada adaptador define `parse()` a su manera:
-  - `venezuelatebusca.ts` → **JSON** (trae cédula; mejor fuente para dedup).
-  - `desaparecidos.ts` → **HTML con cheerio** (scrapea el listado).
-  - Casos raros (API con token/POST, paginación, o lista renderizada por JS):
-    el adaptador puede sobrescribir `fetchRaw()`. Si la lista es JS-rendered,
-    preferí buscar el endpoint JSON que la alimenta antes que Playwright.
+</div>
 
-Cada fuente declara su `config`: `intervalMinutes`, `minDelayMs`, `jitterMs`.
+---
 
-## Caché del lado nuestro (2 capas)
+## ✨ Qué ofrece
 
-1. **Snapshot de fuente** (`source_snapshots` en SQLite) — guarda `ETag`,
-   `Last-Modified` y un `hash` del contenido por fuente. El runner:
-   - manda request condicional → si **304**, no parsea ni re-ingiere;
-   - si no hay 304 pero el **hash es igual**, tampoco re-ingiere;
-   - si la traída **falla**, conserva el snapshot previo y sigue con el resto.
-2. **Query cache** (`src/cache.ts`) — cache en memoria con TTL para las respuestas
-   del buscador, para absorber picos de tráfico sin pegarle a la DB en cada tecla.
-   Para varias instancias, cambiá esa clase por Redis (misma interfaz). Cloudflare
-   adelante es la primera línea; esto es el origin cache.
+| | |
+|---|---|
+| 🔎 **Búsqueda unificada** | Una consulta busca en todas las plataformas a la vez. |
+| 🪪 **Por cédula `V-` y `E-`** | Coincidencia exacta. Los extranjeros (`E-`) **no** colisionan con venezolanos del mismo número. |
+| 👥 **Resultados ricos para homónimos** | Cuando hay varias personas con el mismo nombre, distingue por edad, género, **sector/última referencia** y **foto**. |
+| ✅ **La buena noticia gana** | Si cualquier fuente marca a alguien como *localizado*, el estado consolidado lo refleja — con quién lo reportó. |
+| 🔗 **Vuelta a la fuente** | No re-hosteamos contactos: cada resultado enlaza a la ficha original. |
+| 📋 **Fuentes a la vista** | El landing muestra qué plataformas se consultan y permite **sugerir nuevas**. |
+| 🔒 **Privacidad primero** | Proyecto sin fines de lucro. No vendemos ni usamos tus datos para nada más. |
+| ⚡ **Liviano y resiliente** | Frontend sin dependencias; carga rápido incluso en redes malas. |
 
-## Scheduler
+---
 
-`src/scheduler.ts` corre **cada fuente en su propio loop** e intervalo, con:
-- **jitter** inicial (no arrancan todas en el mismo segundo),
-- **backoff exponencial** ante errores (techo 30 min), para no machacar un sitio caído,
-- **aislamiento**: una fuente que falla no frena a las demás.
+## 🧠 Cómo funciona
 
-```bash
-npm run watch    # arranca el scheduler (corre indefinidamente)
+```mermaid
+flowchart LR
+    A[Plataformas ciudadanas] -->|adaptador por fuente| B(Ingesta)
+    B --> C{Deduplicación}
+    C -->|cédula = match exacto| D[(Persona única<br/>SQLite)]
+    C -->|sin cédula = sugerencia| D
+    D --> E[Reconciliación de estado<br/>la buena noticia gana]
+    E --> F[API de búsqueda + cache]
+    F --> G[🌐 Buscador web]
 ```
 
-Alternativa: disparar `runAll()` desde un cron del sistema cada 15 min, sin loop propio.
+1. **Ingesta** — un *adaptador* por plataforma trae los registros públicos (JSON o HTML).
+2. **Normaliza** a un modelo común estilo PFIF (persona + procedencia + notas de estado).
+3. **Deduplica en capas** — por **cédula** hace merge seguro entre plataformas; **sin** cédula, propone una coincidencia para revisión humana (**nunca** fusiona solo).
+4. **Reconcilia el estado** — *localizado* de cualquier fuente consolida a “a salvo”, guardando quién y cuándo lo reportó.
+5. **Sirve la búsqueda** — por cédula o nombre, con cache y enlaces de vuelta a cada fuente.
 
-## Correr (Node 22+)
+El **cacheo es cortés**: requests condicionales (`ETag`/`Last-Modified`/hash) evitan re-descargar lo que no cambió, y una fuente caída nunca frena a las demás.
+
+---
+
+## 🛰️ Fuentes
+
+| Plataforma | Formato | Cédula | Estado |
+|---|---|:---:|---|
+| venezuelatebusca.com | JSON | ✅ | adaptador listo (modo fixtures) |
+| desaparecidosterremotovenezuela.com | HTML | — | adaptador listo (modo fixtures) |
+| estoyaquive.up.railway.app | JSON | ✅ | adaptador listo (modo fixtures) |
+| venezuelareporta.org | JSON (API) | ✅ | planeada |
+
+> Los adaptadores corren en **modo fixtures** (datos sintéticos) hasta conectar el endpoint real de cada plataforma — así nada se prueba contra servidores ajenos sin querer.
+> ¿Conocés otra fuente? Sugerila desde el botón **“Sugerir otra fuente”** del landing, o abrí un issue.
+
+---
+
+## 🚀 Probar local (Node 22+)
 
 ```bash
 npm install
-npm run demo         # dedup por cédula + reconciliación de estado (8 asserts)
-npm run demo:cache   # la 2ª corrida sin cambios NO re-ingiere (4 asserts)
-npm run ingest       # corre las fuentes (hoy: fixtures JSON + HTML)
-npm run serve        # buscador web en http://localhost:3000
+npm run demo         # dedup por cédula + reconciliación + extranjeros (11 asserts)
+npm run ingest       # ingiere las fuentes (fixtures por defecto)
+npm run serve        # buscador en http://localhost:3000
 npm run search -- --cedula "V-12.345.678"
 npm run search -- --name "carlos marin"
 ```
 
-> Usa `node:sqlite` (Node 22+). En Node 18/20 cambiá la import de `src/db.ts` por
-> `better-sqlite3`; la API (`prepare/run/get/all/exec`) es casi idéntica.
+> Usa `node:sqlite` (Node 22+). En Node 18/20, cambiá la import de `src/db.ts` por `better-sqlite3` (API casi idéntica).
 
-## Conectar una fuente real (5 min)
+---
 
-Hoy corre en modo **fixtures** para no tocar servidores ajenos. En el adaptador:
-1. F12 → **Network → Fetch/XHR**, encontrá el request que devuelve los registros.
-2. Pegá la URL en `ENDPOINT` y ajustá `parse()` a la forma real.
+## 🔌 API
 
-## Reglas que NO se negocian
+| Endpoint | Qué hace |
+|---|---|
+| `GET /api/search?cedula=V-12.345.678` | Búsqueda exacta por cédula (`V-` o `E-`). |
+| `GET /api/search?name=jose%20perez` | Búsqueda por nombre (resultados ricos para homónimos). |
+| `GET /api/sources` | Plataformas consultadas + última sincronización. |
+| `POST /api/suggest-source` | Recibe sugerencias de nuevas fuentes (`{ url, name?, note? }`). |
 
-- **Sé buen ciudadano.** Pull espaciado y cacheado; los sitios ya se caen por carga.
-- **Re-hosteá lo mínimo.** Para el contacto, linkeá a la ficha original.
-- **Propagá "localizado" rápido.** Re-scrapeá seguido.
-- **Nunca afirmes una coincidencia sin cédula.** Sugerí, no decidas.
+---
 
-## Buscador web (read-only)
+## 🤝 Conectar una fuente real
 
-`npm run serve` levanta un servidor mínimo (`node:http`, sin dependencias) que
-expone la búsqueda y sirve el frontend:
+1. F12 → **Network → Fetch/XHR** en la plataforma, encontrá el request que devuelve el listado.
+2. Pegá la URL en `ENDPOINT` del adaptador y ajustá `parse()` a la forma real del JSON/HTML.
+3. Sumá el adaptador en `src/sources/index.ts`. Listo.
 
-- `GET /api/search?cedula=V-12.345.678` · `GET /api/search?name=jose%20perez`
-  - Acepta cédula venezolana (`V-`) y de **extranjero** (`E-`); el prefijo se
-    conserva, así que `E-84.111.222` nunca colisiona con `V-84.111.222`.
-- `GET /api/sources` — fuentes que el agregador consulta hoy (dominio, cada
-  cuánto se sincroniza, última traída).
-- `POST /api/suggest-source` — recibe sugerencias de nuevas fuentes desde el
-  popup del landing (`{ url, name?, note? }`), persistidas en `source_suggestions`.
-- Las respuestas de búsqueda pasan por el **query cache** (TTL) para absorber picos.
-- El frontend (`public/index.html`) detecta solo si escribís cédula o nombre,
-  muestra el **estado consolidado** (Localizado / Sin contacto) con datos ricos
-  para distinguir homónimos (edad, género, sector/referencia y foto) y los
-  enlaces de vuelta a cada fuente. Además lista las **fuentes consultadas** y
-  permite **sugerir nuevas**. Sin dependencias externas: carga rápido y funciona
-  en redes malas.
+---
 
-Pensado para correr detrás de Cloudflare (edge cache = primera línea).
+## 📦 Deploy
 
-## Subirlo a GitHub
+Corre en hosting compartido **cPanel / CloudLinux** (Passenger + cron) o en cualquier server con Node 22+. Pasos en **[DEPLOY.md](DEPLOY.md)**. La base de datos con datos personales vive **fuera del docroot** y nunca se versiona.
 
-El proyecto ya viene como repo git inicializado y con commit. Para publicarlo:
+---
 
-```bash
-# con GitHub CLI:
-gh repo create vzla-finder --public --source=. --remote=origin --push
+## 🔒 Privacidad y ética
 
-# o manual (creá el repo vacío en github.com y luego):
-git remote add origin git@github.com:TU_USUARIO/vzla-finder.git
-git push -u origin main
-```
+Este es un **proyecto altruista, sin fines de lucro**. Solo reunimos en un mismo lugar lo que las plataformas ciudadanas **ya publican**, con enlace de vuelta a cada fuente. No vendemos, compartimos ni usamos los datos para nada que no sea ayudar a reunir a las personas con sus familias. Reglas que no se negocian:
 
-El commit quedó con autor placeholder; ajustalo si querés:
-`git commit --amend --author="Renan Díaz <tu-email>"`.
+- **Buen ciudadano de la web:** pull espaciado y cacheado.
+- **Re-hostear lo mínimo:** para el contacto, se enlaza a la ficha original.
+- **Nunca afirmar una coincidencia sin cédula:** se sugiere, no se decide.
 
-## Estructura
+🚨 **¿Es una emergencia?** En Venezuela, llamá al **171** (gestión de riesgos / Protección Civil).
+
+---
+
+<details>
+<summary>📂 Estructura del proyecto</summary>
 
 ```
 src/
   types.ts        modelo PFIF-lite + contratos de fuente/caché
-  normalize.ts    cédula, nombre, similitud
+  normalize.ts    cédula (V-/E-), nombre, similitud
   db.ts           almacenamiento + snapshots (node:sqlite)
   dedup.ts        resolución de persona
   reconcile.ts    "la buena noticia gana"
-  ingest.ts       ingesta de registros (sin red)
-  runner.ts       caché + request condicional + ingesta
+  ingest.ts       ingesta de registros
+  runner.ts       cache + request condicional + ingesta
   scheduler.ts    loops por fuente (intervalo / jitter / backoff)
   cache.ts        query cache (TTL) para el buscador
   search.ts       búsqueda unificada
-  server.ts       servidor HTTP (API + estático) con query cache
+  server.ts       servidor HTTP (API + estático)
   cli.ts          CLI (ingest / watch / search)
-  sources/
-    base.ts            fetch compartido (cortesía + condicional)
-    venezuelatebusca.ts  adaptador JSON
-    desaparecidos.ts     adaptador HTML (cheerio)
-    index.ts             registro de fuentes
-public/
-  index.html      frontend read-only del buscador
-test/
-  demo.ts         e2e dedup/estado
-  cache.ts        e2e caché/skip
+  sources/        un adaptador por plataforma (+ base de fetch cortés)
+public/index.html frontend read-only del buscador
+scripts/          cron de cacheo
+test/             pruebas e2e (dedup, estado, cache)
 fixtures/         datos sintéticos (JSON + HTML)
 ```
+</details>
+
+---
+
+<div align="center">
+
+Hecho con ❤️ por **[Renan Díaz](https://github.com/reandimo)** · ¿Sumás una fuente o un fix? [Abrí un issue o PR](https://github.com/reandimo/vzla-finder/issues) · Licencia [MIT](LICENSE)
+
+</div>
