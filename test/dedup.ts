@@ -42,5 +42,19 @@ check('sin cédula no provoca merge (siguen 2 registros)',
 const q = resolvePerson(store, raw({ sourceId: 'Z1', fullName: 'María Fernanda Rodríguez', age: 28, state: 'Miranda' }));
 check('persona sin relación se crea aparte', q.personId !== p1.personId && q.personId !== p2.personId);
 
+// --- FALLBACK por silo: re-scrape del mismo sourceId NO duplica ---
+const dom = 'silo.com';
+const f1 = resolvePerson(store, raw({ sourceId: 'NOID-9', fullName: 'Pedro Sin Cédula', age: 50, state: 'Zulia' }), dom);
+store.upsertSourceLink({
+  personId: f1.personId, sourceDomain: dom, sourceId: 'NOID-9', sourceUrl: null,
+  rawName: 'Pedro Sin Cédula', rawCedula: null, firstSeen: 't', lastSeen: 't',
+});
+const f2 = resolvePerson(store, raw({ sourceId: 'NOID-9', fullName: 'Pedro Sin Cédula', age: 50, state: 'Zulia' }), dom);
+check('sin cédula: re-scrape del mismo silo+id reusa la persona', f2.personId === f1.personId && !f2.created && f2.matchedBy === 'source');
+
+// --- el fallback NO cruza entre silos (otro silo = persona nueva) ---
+const f3 = resolvePerson(store, raw({ sourceId: 'NOID-9', fullName: 'Pedro Sin Cédula', age: 50, state: 'Zulia' }), 'otro-silo.com');
+check('sin cédula: otro silo NO auto-fusiona (persona nueva)', f3.personId !== f1.personId && f3.created);
+
 console.log(`\n${pass} OK, ${fail} fallidas`);
 process.exit(fail === 0 ? 0 : 1);

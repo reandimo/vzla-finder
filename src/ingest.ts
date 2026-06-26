@@ -28,7 +28,7 @@ export function ingestRecords(
       if (!raw.fullName?.trim()) continue;
       stat.fetched++;
 
-      const { personId, created, matchedBy } = resolvePerson(store, raw);
+      const { personId, created, matchedBy } = resolvePerson(store, raw, adapter.domain);
       if (created) stat.newPersons++;
       else if (matchedBy === 'cedula') stat.mergedByCedula++;
 
