@@ -69,6 +69,7 @@ npm install
 npm run demo         # dedup por cédula + reconciliación de estado (8 asserts)
 npm run demo:cache   # la 2ª corrida sin cambios NO re-ingiere (4 asserts)
 npm run ingest       # corre las fuentes (hoy: fixtures JSON + HTML)
+npm run serve        # buscador web en http://localhost:3000
 npm run search -- --cedula "V-12.345.678"
 npm run search -- --name "carlos marin"
 ```
@@ -89,6 +90,36 @@ Hoy corre en modo **fixtures** para no tocar servidores ajenos. En el adaptador:
 - **Propagá "localizado" rápido.** Re-scrapeá seguido.
 - **Nunca afirmes una coincidencia sin cédula.** Sugerí, no decidas.
 
+## Buscador web (read-only)
+
+`npm run serve` levanta un servidor mínimo (`node:http`, sin dependencias) que
+expone la búsqueda y sirve el frontend:
+
+- `GET /api/search?cedula=V-12.345.678` · `GET /api/search?name=jose%20perez`
+- Las respuestas pasan por el **query cache** (TTL) para absorber picos.
+- El frontend (`public/index.html`) detecta solo si escribís cédula o nombre,
+  muestra el **estado consolidado** (Localizado / Sin contacto) y los enlaces de
+  vuelta a cada fuente. Sin fuentes ni dependencias externas: carga rápido y
+  funciona en redes malas.
+
+Pensado para correr detrás de Cloudflare (edge cache = primera línea).
+
+## Subirlo a GitHub
+
+El proyecto ya viene como repo git inicializado y con commit. Para publicarlo:
+
+```bash
+# con GitHub CLI:
+gh repo create vzla-finder --public --source=. --remote=origin --push
+
+# o manual (creá el repo vacío en github.com y luego):
+git remote add origin git@github.com:TU_USUARIO/vzla-finder.git
+git push -u origin main
+```
+
+El commit quedó con autor placeholder; ajustalo si querés:
+`git commit --amend --author="Renan Díaz <tu-email>"`.
+
 ## Estructura
 
 ```
@@ -103,12 +134,15 @@ src/
   scheduler.ts    loops por fuente (intervalo / jitter / backoff)
   cache.ts        query cache (TTL) para el buscador
   search.ts       búsqueda unificada
+  server.ts       servidor HTTP (API + estático) con query cache
   cli.ts          CLI (ingest / watch / search)
   sources/
     base.ts            fetch compartido (cortesía + condicional)
     venezuelatebusca.ts  adaptador JSON
     desaparecidos.ts     adaptador HTML (cheerio)
     index.ts             registro de fuentes
+public/
+  index.html      frontend read-only del buscador
 test/
   demo.ts         e2e dedup/estado
   cache.ts        e2e caché/skip
