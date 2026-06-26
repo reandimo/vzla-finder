@@ -1,0 +1,23 @@
+{
+  "name": "vzla-finder",
+  "version": "0.2.0",
+  "type": "module",
+  "description": "Agregador solidario de registros de desaparecidos (terremoto Venezuela 2026)",
+  "scripts": {
+    "demo": "node --experimental-sqlite --import tsx test/demo.ts",
+    "demo:cache": "node --experimental-sqlite --import tsx test/cache.ts",
+    "ingest": "node --experimental-sqlite --import tsx src/cli.ts ingest",
+    "watch": "node --experimental-sqlite --import tsx src/cli.ts watch",
+    "serve": "node --experimental-sqlite --import tsx src/server.ts",
+    "search": "node --experimental-sqlite --import tsx src/cli.ts search",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.22.0",
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,16 @@
+# deps
+node_modules/
+
+# base de datos local (no versionar PII)
+*.db
+*.db-shm
+*.db-wal
+data.db*
+
+# logs / temporales
+*.log
+.DS_Store
+
+# entorno
+.env
+*.zip

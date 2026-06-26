@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Buscador unificado — Desaparecidos terremoto Venezuela</title>
+<style>
+  :root {
+    --paper: #f6f7f9;
+    --card: #ffffff;
+    --ink: #18212e;
+    --muted: #59636f;
+    --line: #e2e6ec;
+    --accent: #0f6e6e;       /* teal sobrio para acción */
+    --safe: #1f8a5b;         /* localizado */
+    --safe-bg: #e9f5ef;
+    --waiting: #b0673a;      /* sin contacto: informativo, no alarmista */
+    --waiting-bg: #f6ece3;
+    --focus: #1f6feb;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 28px 18px 64px; }
+
+  header { padding: 8px 0 22px; }
+  .kicker {
+    font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600;
+  }
+  h1 {
+    font-size: clamp(22px, 5vw, 30px); line-height: 1.15; margin: 6px 0 8px;
+    letter-spacing: -.01em; font-weight: 700;
+  }
+  .lede { color: var(--muted); margin: 0; max-width: 56ch; }
+
+  form { margin: 22px 0 6px; }
+  .field {
+    display: flex; gap: 8px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 12px; padding: 6px;
+    box-shadow: 0 1px 2px rgba(20,30,45,.04);
+  }
+  input[type="search"] {
+    flex: 1; border: 0; background: transparent; padding: 12px 12px;
+    font-size: 16px; color: var(--ink); outline: none; min-width: 0;
+  }
+  button {
+    border: 0; border-radius: 9px; background: var(--accent); color: #fff;
+    font-weight: 600; font-size: 15px; padding: 0 18px; cursor: pointer;
+    white-space: nowrap;
+  }
+  button:hover { background: #0c5c5c; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .hint { font-size: 13px; color: var(--muted); margin: 8px 2px 0; }
+
+  #status { margin: 22px 2px 10px; font-size: 14px; color: var(--muted); min-height: 20px; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    margin: 12px 0; overflow: hidden;
+  }
+  .banner {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px; font-weight: 600; font-size: 14px;
+  }
+  .banner.safe { background: var(--safe-bg); color: var(--safe); }
+  .banner.waiting { background: var(--waiting-bg); color: var(--waiting); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+  .body { padding: 14px 16px 16px; }
+  .name { font-size: 18px; font-weight: 700; margin: 0 0 6px; letter-spacing: -.01em; }
+  .meta { color: var(--muted); font-size: 14px; margin: 0 0 4px; }
+  .meta b { color: var(--ink); font-weight: 600; }
+  .resolved { color: var(--safe); font-size: 13px; margin: 6px 0 0; }
+
+  .sources {
+    margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line);
+  }
+  .sources-label {
+    font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 8px;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; text-decoration: none; color: var(--accent);
+    border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px;
+    background: #fbfcfd;
+  }
+  .chip:hover { border-color: var(--accent); }
+  .chip::after { content: "↗"; font-size: 11px; opacity: .7; }
+
+  .empty {
+    background: var(--card); border: 1px dashed var(--line); border-radius: 14px;
+    padding: 22px 18px; color: var(--muted);
+  }
+  .empty b { color: var(--ink); }
+
+  footer {
+    margin-top: 30px; padding-top: 18px; border-top: 1px solid var(--line);
+    font-size: 13px; color: var(--muted);
+  }
+  footer p { margin: 0 0 8px; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .card { animation: rise .22s ease both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">Búsqueda unificada</div>
+    <h1>Buscá una persona en todos los registros a la vez</h1>
+    <p class="lede">
+      Reúne los reportes de varias plataformas ciudadanas en un solo lugar.
+      Si alguien ya fue reportado a salvo en cualquiera de ellas, lo vas a ver acá.
+    </p>
+  </header>
+
+  <form id="form" role="search">
+    <div class="field">
+      <label for="q" class="sr-only" style="position:absolute;left:-9999px">Buscar por cédula o nombre</label>
+      <input id="q" type="search" inputmode="search"
+             placeholder="Cédula (V-12.345.678) o nombre completo"
+             autocomplete="off" autofocus />
+      <button type="submit">Buscar</button>
+    </div>
+    <p class="hint">Con cédula la coincidencia es exacta. Por nombre puede haber varios resultados parecidos.</p>
+  </form>
+
+  <div id="status" role="status" aria-live="polite"></div>
+  <div id="results"></div>
+
+  <footer>
+    <p>Los datos provienen de registros ciudadanos y pueden estar incompletos o
+       desactualizados. Para contactar a quien reportó un caso, entrá al enlace de
+       la fuente original.</p>
+    <p>Si encontrás a una persona, avisá en la plataforma donde está reportada para
+       que se actualice su estado.</p>
+  </footer>
+</div>
+
+<script>
+  const form = document.getElementById('form');
+  const input = document.getElementById('q');
+  const statusEl = document.getElementById('status');
+  const resultsEl = document.getElementById('results');
+
+  // Detecta si el texto parece una cédula venezolana.
+  function looksLikeCedula(s) {
+    return /^[veVE]?[\s.-]*\d[\d.\s-]{4,}$/.test(s.trim());
+  }
+
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function render(data) {
+    resultsEl.innerHTML = '';
+    if (!data.results.length) {
+      resultsEl.innerHTML =
+        '<div class="empty">Sin coincidencias todavía. Probá con otra forma del ' +
+        'nombre, o con la <b>cédula</b> si la tenés: es la búsqueda más precisa.</div>';
+      return;
+    }
+    for (const p of data.results) {
+      const safe = p.consolidatedStatus === 'localizado';
+      const card = document.createElement('article');
+      card.className = 'card';
+
+      const meta = [
+        p.cedula ? `<b>${esc(p.cedula)}</b>` : null,
+        p.age != null ? `${esc(p.age)} años` : null,
+        p.lastSeenState ? esc(p.lastSeenState) : null,
+        p.lastSeenCity ? esc(p.lastSeenCity) : null,
+      ].filter(Boolean).join(' · ');
+
+      const chips = p.sources.map((s) => {
+        const label = esc(s.sourceDomain);
+        return s.sourceUrl
+          ? `<a class="chip" href="${esc(s.sourceUrl)}" target="_blank" rel="noopener noreferrer">${label}</a>`
+          : `<span class="chip">${label}</span>`;
+      }).join('');
+
+      card.innerHTML = `
+        <div class="banner ${safe ? 'safe' : 'waiting'}">
+          <span class="dot"></span>${safe ? 'Localizado' : 'Sin contacto'}
+        </div>
+        <div class="body">
+          <p class="name">${esc(p.fullName)}</p>
+          <p class="meta">${meta || '—'}</p>
+          ${safe && p.resolvedBy ? `<p class="resolved">Reportado a salvo por ${esc(p.resolvedBy)}.</p>` : ''}
+          <div class="sources">
+            <div class="sources-label">Reportado en ${p.sources.length} fuente${p.sources.length === 1 ? '' : 's'}</div>
+            <div class="chips">${chips}</div>
+          </div>
+        </div>`;
+      resultsEl.appendChild(card);
+    }
+  }
+
+  async function search(q) {
+    const param = looksLikeCedula(q) ? 'cedula' : 'name';
+    statusEl.textContent = 'Buscando…';
+    resultsEl.innerHTML = '';
+    try {
+      const res = await fetch(`/api/search?${param}=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      if (!res.ok) { statusEl.textContent = data.error || 'No se pudo buscar.'; return; }
+      const n = data.count;
+      statusEl.textContent = n === 0
+        ? 'Sin resultados.'
+        : `${n} resultado${n === 1 ? '' : 's'}${param === 'cedula' ? ' por cédula' : ' por nombre'}.`;
+      render(data);
+    } catch {
+      statusEl.textContent = 'No se pudo conectar. Reintentá en unos segundos.';
+    }
+  }
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const q = input.value.trim();
+    if (q.length >= 2) search(q);
+    else statusEl.textContent = 'Escribí al menos 2 caracteres.';
+  });
+</script>
+</body>
+</html>
