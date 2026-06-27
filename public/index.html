@@ -108,6 +108,20 @@
   }
   .empty b { color: var(--ink); }
 
+  .filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 2px 4px; }
+  .filter-group { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+  .fchip {
+    border: 1px solid var(--line); background: var(--card); color: var(--muted);
+    border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .fchip:hover { border-color: var(--accent); }
+  .fchip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: #eef6f6; }
+  .filter-region {
+    border: 1px solid var(--line); border-radius: 9px; padding: 7px 10px;
+    font-size: 13px; color: var(--ink); background: var(--card); font: inherit; font-size: 13px;
+  }
+  .filter-count { font-size: 12px; color: var(--muted); margin-left: auto; }
+
   /* Panel de fuentes consultadas */
   .panel {
     margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line);
@@ -217,6 +231,11 @@
   </form>
 
   <div id="status" role="status" aria-live="polite"></div>
+  <div id="filters" class="filters" hidden>
+    <div class="filter-group" id="filter-status" role="group" aria-label="Filtrar por estado"></div>
+    <select id="filter-region" class="filter-region" aria-label="Filtrar por región" hidden></select>
+    <span class="filter-count" id="filter-count"></span>
+  </div>
   <div id="results"></div>
 
   <section class="panel" aria-labelledby="sources-title">
@@ -312,15 +331,40 @@
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
+  let currentResults = [];
+  const filters = { status: 'all', region: '' };
+
   function render(data) {
+    currentResults = data.results || [];
+    filters.status = 'all';
+    filters.region = '';
+    buildFilters(currentResults);
+    renderCards();
+  }
+
+  function matchesFilters(p) {
+    if (filters.status !== 'all' && p.consolidatedStatus !== filters.status) return false;
+    if (filters.region && (p.lastSeenState || '') !== filters.region) return false;
+    return true;
+  }
+
+  function renderCards() {
     resultsEl.innerHTML = '';
-    if (!data.results.length) {
+    if (!currentResults.length) {
       resultsEl.innerHTML =
         '<div class="empty">Sin coincidencias todavía. Prueba con otra forma del ' +
         'nombre, o con la <b>cédula</b> si la tienes: es la búsqueda más precisa.</div>';
       return;
     }
-    for (const p of data.results) {
+    const list = currentResults.filter(matchesFilters);
+    const countEl = document.getElementById('filter-count');
+    if (countEl) countEl.textContent =
+      list.length === currentResults.length ? '' : `${list.length} de ${currentResults.length}`;
+    if (!list.length) {
+      resultsEl.innerHTML = '<div class="empty">Ningún resultado con esos filtros. <b>Ajústalos</b> o quítalos.</div>';
+      return;
+    }
+    for (const p of list) {
       const safe = p.consolidatedStatus === 'localizado';
       const card = document.createElement('article');
       card.className = 'card';
@@ -369,6 +413,41 @@
           </div>
         </div>`;
       resultsEl.appendChild(card);
+    }
+  }
+
+  function buildFilters(results) {
+    const bar = document.getElementById('filters');
+    const statusBox = document.getElementById('filter-status');
+    const regionSel = document.getElementById('filter-region');
+
+    // Solo tiene sentido filtrar con más de un resultado.
+    if (results.length <= 1) { bar.hidden = true; statusBox.innerHTML = ''; return; }
+    bar.hidden = false;
+
+    // Estado: "Todos" + los que estén presentes.
+    const present = new Set(results.map((p) => p.consolidatedStatus));
+    const opts = [['all', 'Todos']];
+    if (present.has('localizado')) opts.push(['localizado', 'Localizados']);
+    if (present.has('sin_contacto')) opts.push(['sin_contacto', 'Sin contacto']);
+    statusBox.innerHTML = opts.map(([v, l]) =>
+      `<button type="button" class="fchip" data-status="${v}" aria-pressed="${v === 'all'}">${l}</button>`).join('');
+    statusBox.querySelectorAll('.fchip').forEach((b) => b.addEventListener('click', () => {
+      filters.status = b.dataset.status;
+      statusBox.querySelectorAll('.fchip').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      renderCards();
+    }));
+
+    // Región: estados venezolanos presentes en los resultados.
+    const regions = [...new Set(results.map((p) => p.lastSeenState).filter(Boolean))].sort();
+    if (regions.length >= 2) {
+      regionSel.hidden = false;
+      regionSel.innerHTML = '<option value="">Toda región</option>' +
+        regions.map((r) => `<option value="${esc(r)}">${esc(r)}</option>`).join('');
+      regionSel.value = '';
+      regionSel.onchange = () => { filters.region = regionSel.value; renderCards(); };
+    } else {
+      regionSel.hidden = true; regionSel.innerHTML = '';
     }
   }
 
