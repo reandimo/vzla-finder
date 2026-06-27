@@ -28,6 +28,10 @@ const PUBLIC_DIR = fileURLToPath(new URL('../public', import.meta.url));
 const TURNSTILE_SITEKEY = process.env.TURNSTILE_SITEKEY ?? '';
 const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET ?? '';
 
+// Dominio canónico (migración). Si está seteado, cualquier request con otro host
+// se redirige 301 a él (apex). Inerte si no se configura. Ej: busquedaunificadavzla.com
+const CANONICAL_HOST = (process.env.CANONICAL_HOST ?? '').toLowerCase();
+
 const store = new Store(DB_PATH);
 const cache = new QueryCache<ConsolidatedPerson[]>(30_000);
 
@@ -41,6 +45,14 @@ const MIME: Record<string, string> = {
 
 const server = createServer(async (req, res) => {
   try {
+    // Redirección canónica (migración de dominio): manda 301 al host oficial.
+    const reqHost = (req.headers.host ?? '').toLowerCase().split(':')[0];
+    if (CANONICAL_HOST && reqHost && reqHost !== CANONICAL_HOST) {
+      res.writeHead(301, { Location: `https://${CANONICAL_HOST}${req.url ?? '/'}` });
+      res.end();
+      return;
+    }
+
     const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
 
     if (url.pathname === '/api/search') {
