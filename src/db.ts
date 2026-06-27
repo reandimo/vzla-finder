@@ -18,6 +18,9 @@ export class Store {
   constructor(path = 'data.db') {
     this.db = new DatabaseSync(path);
     this.db.exec('PRAGMA journal_mode = WAL;');
+    // Esperar el lock en vez de fallar al toque: clave cuando el web app, el cron
+    // de ingesta y/o un backfill escriben a la vez (SQLITE_BUSY → "database is locked").
+    this.db.exec('PRAGMA busy_timeout = 8000;');
     this.migrate();
   }
 
