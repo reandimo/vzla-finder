@@ -20,7 +20,7 @@ import { BaseHttpAdapter, DEFAULT_CONFIG } from './base.ts';
 
 const BASE = 'https://venezuelareporta.org';
 const PAGES_PER_RUN = 10; // 10 × ~60 = ~600 reportes más nuevos por corrida
-const UA = 'vzla-finder/1.0 (agregador solidario de desaparecidos; +https://vzlafinder.reandimo.dev)';
+const UA = 'vzla-finder/1.0 (agregador solidario de desaparecidos; +https://busquedaunificadavzla.com)';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

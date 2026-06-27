@@ -18,7 +18,7 @@ import { ingestRecords } from '../src/ingest.ts';
 import { VenezuelaTeBuscaAdapter } from '../src/sources/venezuelatebusca.ts';
 
 const BASE = 'https://venezuelatebusca.com';
-const UA = 'vzla-finder/1.0 (agregador solidario de desaparecidos; backfill; +https://vzlafinder.reandimo.dev)';
+const UA = 'vzla-finder/1.0 (agregador solidario de desaparecidos; backfill; +https://busquedaunificadavzla.com)';
 const DB = process.env.VZLA_DB ?? 'data.db';
 const MAX_PAGES = Number(process.env.MAX_PAGES ?? 2000);
 const DELAY_MS = Number(process.env.DELAY_MS ?? 1200);

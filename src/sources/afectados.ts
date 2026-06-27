@@ -28,7 +28,7 @@ import type {
 import { BaseHttpAdapter, DEFAULT_CONFIG } from './base.ts';
 
 const BASE = 'https://www.afectadosporelterremotovenezuela.com';
-const UA = 'vzla-finder/1.0 (agregador solidario de desaparecidos; +https://vzlafinder.reandimo.dev)';
+const UA = 'vzla-finder/1.0 (agregador solidario de desaparecidos; +https://busquedaunificadavzla.com)';
 
 /** Páginas a traer y el estado consolidado que implica cada una. */
 const PAGES: { path: string; status: Status }[] = [
