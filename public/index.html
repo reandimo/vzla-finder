@@ -4,6 +4,26 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Buscador unificado — Desaparecidos terremoto Venezuela</title>
+
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-TFQBX57R');</script>
+<!-- End Google Tag Manager -->
+
+<!-- Microsoft Clarity (analítica de uso). Privacidad: el buscador, los
+     resultados y el form de sugerencias van enmascarados (data-clarity-mask),
+     así Clarity ve el uso/layout pero NUNCA los nombres ni cédulas reales. -->
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "xdpn11uxvm");
+</script>
+
 <style>
   :root {
     --paper: #f6f7f9;
@@ -216,6 +236,10 @@
 </style>
 </head>
 <body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TFQBX57R"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
 <div class="wrap">
   <header>
     <div class="kicker">Búsqueda unificada</div>
@@ -231,7 +255,8 @@
       <label for="q" class="sr-only" style="position:absolute;left:-9999px">Buscar por cédula o nombre</label>
       <input id="q" type="search" inputmode="search"
              placeholder="Cédula (V- o E-) o nombre completo"
-             autocomplete="off" autofocus />
+             autocomplete="off" autofocus
+             data-clarity-mask="true" />
       <button type="submit">Buscar</button>
     </div>
     <p class="hint">Funciona con cédula venezolana <b>V-</b> y de extranjero <b>E-</b>: la coincidencia es exacta. Por nombre puede haber varias personas parecidas — fíjate en la edad, la zona y la foto para distinguirlas.</p>
@@ -243,7 +268,8 @@
     <select id="filter-region" class="filter-region" aria-label="Filtrar por región" hidden></select>
     <span class="filter-count" id="filter-count"></span>
   </div>
-  <div id="results"></div>
+  <!-- Enmascarado para Clarity: las tarjetas traen nombres, cédulas y fotos reales. -->
+  <div id="results" data-clarity-mask="true"></div>
 
   <section class="panel" aria-labelledby="sources-title">
     <div class="panel-head">
@@ -305,7 +331,7 @@
   <div class="modal-card">
     <h2 id="suggest-title">Sugerir una fuente</h2>
     <p class="sub">¿Conoces otra plataforma que reporte desaparecidos del terremoto? Pásanos el enlace y la sumamos a la búsqueda.</p>
-    <form id="suggest-form">
+    <form id="suggest-form" data-clarity-mask="true">
       <label for="s-url">Enlace de la plataforma *</label>
       <input id="s-url" type="url" inputmode="url" placeholder="https://ejemplo.org" required />
       <label for="s-name">Nombre del sitio (opcional)</label>
