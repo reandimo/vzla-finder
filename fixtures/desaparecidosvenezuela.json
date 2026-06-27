@@ -1,0 +1,65 @@
+[
+  {
+    "id": "des-1",
+    "nombre": "Andreina Esposito",
+    "edad": 63,
+    "zona": "La Guaira · La Guaira (centro) · Edificio palafito del mar",
+    "fotoUrl": "/api/personas/des-1/foto",
+    "fotoMime": "image/jpeg",
+    "descripcion": "Edificio palafito del mar",
+    "estado": "BUSCADO",
+    "tipo": "BUSCO",
+    "oculto": false,
+    "lat": 10.6019,
+    "lng": -66.9336,
+    "createdAt": "2026-06-27T01:28:14.950Z",
+    "updatedAt": "2026-06-27T01:28:14.966Z",
+    "actualizaciones": []
+  },
+  {
+    "id": "des-2",
+    "nombre": "Carlos Rivas",
+    "edad": null,
+    "zona": "La Guaira · Maiquetía",
+    "fotoUrl": null,
+    "fotoMime": null,
+    "descripcion": null,
+    "estado": "BUSCADO",
+    "tipo": "BUSCO",
+    "oculto": false,
+    "lat": 10.6,
+    "lng": -66.98,
+    "createdAt": "2026-06-27T01:00:00.000Z",
+    "updatedAt": "2026-06-27T01:34:10.484Z",
+    "actualizaciones": [
+      {
+        "id": "a-1",
+        "personaId": "des-2",
+        "mensaje": "✅ Reporta que esta persona fue encontrada.",
+        "autor": "Isabel",
+        "contacto": "No dejó contacto",
+        "tipo": "ENCONTRADO",
+        "esFamilia": false,
+        "parentId": null,
+        "createdAt": "2026-06-27T01:34:10.484Z"
+      }
+    ]
+  },
+  {
+    "id": "des-3",
+    "nombre": "Registro Oculto",
+    "edad": 20,
+    "zona": "Miranda · Los Teques",
+    "fotoUrl": null,
+    "fotoMime": null,
+    "descripcion": null,
+    "estado": "ENCONTRADO",
+    "tipo": "BUSCO",
+    "oculto": true,
+    "lat": 10.34,
+    "lng": -67.04,
+    "createdAt": "2026-06-27T00:00:00.000Z",
+    "updatedAt": "2026-06-27T00:00:00.000Z",
+    "actualizaciones": []
+  }
+]

@@ -52,7 +52,7 @@ check('GET /api/search sin parámetros → 400', (await jget('/api/search')).sta
 
 // --- fuentes ---
 const src = await jget('/api/sources');
-check('GET /api/sources lista las fuentes reales activas', src.status === 200 && src.body?.count === 2);
+check('GET /api/sources lista las fuentes reales activas', src.status === 200 && src.body?.count === 3);
 
 // --- sugerir fuente: válido / inválido / persistencia ---
 check('POST /api/suggest-source válido → 201', (await post('/api/suggest-source', { url: 'https://nueva.org', name: 'Nueva' })).status === 201);

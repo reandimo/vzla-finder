@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { VenezuelaTeBuscaAdapter, unflatten } from '../src/sources/venezuelatebusca.ts';
 import { DesaparecidosTerremotoAdapter } from '../src/sources/desaparecidos.ts';
 import { EstoyAquiAdapter } from '../src/sources/estoyaqui.ts';
+import { DesaparecidosVenezuelaAdapter } from '../src/sources/desaparecidosvenezuela.ts';
 
 let pass = 0, fail = 0;
 const check = (n: string, c: boolean) => { console.log(`${c ? '✅' : '❌'} ${n}`); c ? pass++ : fail++; };
@@ -50,6 +51,19 @@ check('estoyaqui: encontrados → status localizado', eaq[0].status === 'localiz
 check('estoyaqui: mapea edad_aproximada → age', eaq[0].age === 53);
 check('estoyaqui: mapea cédula y ubicación como referencia',
   eaq[0].cedula === '10481980' && (eaq[0].reference ?? '').includes('HAFPL2'));
+
+// --- desaparecidosvenezuela: API /api/personas (sin cédula, estado/actualizaciones) ---
+const dvz = new DesaparecidosVenezuelaAdapter().parse(read('desaparecidosvenezuela.json'));
+check('dvz: ingiere visibles y omite ocultos', dvz.length === 2);
+check('dvz: zona → estado/ciudad', dvz[0].state === 'La Guaira' && dvz[0].city === 'La Guaira (centro)');
+check('dvz: descripción/zona → referencia', dvz[0].reference === 'Edificio palafito del mar');
+check('dvz: BUSCADO sin actualización → sin_contacto', dvz[0].status === 'sin_contacto');
+check('dvz: actualización ENCONTRADO → localizado', dvz[1].status === 'localizado');
+check('dvz: no expone cédula', dvz.every((r) => r.cedula === undefined));
+check('dvz: fotoUrl relativa → absoluta',
+  (dvz[0].photoUrl ?? '').startsWith('https://www.desaparecidosvenezuela.com/api/personas'));
+check('dvz: sourceUrl apunta a la ficha /p/<id>',
+  dvz[0].sourceUrl === 'https://www.desaparecidosvenezuela.com/p/des-1');
 
 console.log(`\n${pass} OK, ${fail} fallidas`);
 process.exit(fail === 0 ? 0 : 1);

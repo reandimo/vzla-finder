@@ -66,12 +66,14 @@ El **cacheo es cortés**: requests condicionales (`ETag`/`Last-Modified`/hash) e
 |---|---|:---:|---|
 | venezuelatebusca.com | React Router `/_root.data` (turbo-stream) | ✅ | 🟢 **scraping en vivo** |
 | estoyaquive.up.railway.app | API `/api/encontradas` | ✅ | 🟢 **scraping en vivo** |
+| desaparecidosvenezuela.com | API `/api/personas` | — | 🟢 **scraping en vivo** |
 | desaparecidosterremotovenezuela.com | API protegida | — | 🔒 bloqueada por reCAPTCHA (no se fuerza) |
-| venezuelareporta.org | API Supabase | ✅ | ⏳ planeada |
+| afectadosporelterremotovenezuela.com | HTML/RSC (Supabase) | 🔸 enmascarada | ⏳ candidata |
+| venezuelareporta.org | HTML/RSC (Supabase) | — | ⏳ candidata |
 
-> Las fuentes activas se scrapean en vivo cada 15 min, con requests corteses y
-> respeto del cacheo. Solo se integran fuentes con datos **reales**: nada de
-> datos sintéticos en producción.
+> Las fuentes activas se scrapean en vivo periódicamente (según el intervalo de
+> cada fuente), con requests corteses y respeto del cacheo. Solo se integran
+> fuentes con datos **reales**: nada de datos sintéticos en producción.
 > ¿Conocés otra fuente? Sugerila desde el botón **“Sugerir otra fuente”** del landing, o abrí un issue.
 
 ---
