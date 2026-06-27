@@ -18,17 +18,26 @@ export function searchByCedula(
   return person ? consolidate(store, person) : null;
 }
 
+export interface NameSearchResult {
+  /** Cuántas personas matchearon de verdad (tras el filtro de similitud). */
+  total: number;
+  /** Las primeras `limit`, ordenadas por parecido y ya consolidadas. */
+  results: ConsolidatedPerson[];
+}
+
 export function searchByName(
   store: Store,
   query: string,
-  limit = 60,
-): ConsolidatedPerson[] {
+  limit = 200,
+): NameSearchResult {
   const norm = normalizeName(query);
   const rough = store.searchByNameTokens(norm.split(' '));
-  return rough
+  const ranked = rough
     .map((p) => ({ p, sim: nameSimilarity(query, p.fullName) }))
     .filter(({ sim }) => sim >= 0.3)
-    .sort((a, b) => b.sim - a.sim)
-    .slice(0, limit)
-    .map(({ p }) => consolidate(store, p));
+    .sort((a, b) => b.sim - a.sim);
+  return {
+    total: ranked.length,
+    results: ranked.slice(0, limit).map(({ p }) => consolidate(store, p)),
+  };
 }

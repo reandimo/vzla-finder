@@ -39,21 +39,23 @@ check('extranjero E- encuentra', searchByCedula(store, 'E-84.111.222')?.fullName
 check('V- del mismo número NO trae al extranjero', searchByCedula(store, 'V-84.111.222') === null);
 
 // --- nombre: homónimos, ambos vuelven y son distinguibles ---
-const carlos = searchByName(store, 'carlos marin');
+const carlos = searchByName(store, 'carlos marin').results;
 check('homónimos: devuelve a los dos Carlos', carlos.length === 2);
 check('campos ricos para distinguir (edad + referencia)',
   carlos.some((p) => p.age === 41 && p.lastSeenRef === 'Los Palos Grandes') &&
   carlos.some((p) => p.age === 42));
 
 // --- nombre: enriquecimiento por cédula visible en la búsqueda por nombre ---
-const jose = searchByName(store, 'jose perez');
+const jose = searchByName(store, 'jose perez').results;
 check('búsqueda por nombre trae la cédula consolidada', jose[0]?.cedula === 'V12345678');
 
 // --- nombre: sin coincidencias razonables → vacío ---
-check('nombre sin relación → 0 resultados', searchByName(store, 'zzz qqq').length === 0);
+check('nombre sin relación → 0 resultados', searchByName(store, 'zzz qqq').results.length === 0);
 
-// --- límite ---
-check('respeta el límite (limit=1)', searchByName(store, 'carlos marin', 1).length === 1);
+// --- límite y total ---
+const lim = searchByName(store, 'carlos marin', 1);
+check('respeta el límite (limit=1)', lim.results.length === 1);
+check('total refleja todas las coincidencias aunque se recorten', lim.total === 2);
 
 console.log(`\n${pass} OK, ${fail} fallidas`);
 process.exit(fail === 0 ? 0 : 1);

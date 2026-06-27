@@ -33,7 +33,9 @@ const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET ?? '';
 const CANONICAL_HOST = (process.env.CANONICAL_HOST ?? '').toLowerCase();
 
 const store = new Store(DB_PATH);
-const cache = new QueryCache<ConsolidatedPerson[]>(30_000);
+// Guarda tanto arrays (búsqueda por cédula) como { total, results } (por nombre),
+// bajo prefijos de clave distintos (c: / n:). De ahí el tipo laxo.
+const cache = new QueryCache<any>(30_000);
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -75,6 +77,7 @@ function handleSearch(url: URL, res: any) {
   const cedula = url.searchParams.get('cedula')?.trim();
   const name = url.searchParams.get('name')?.trim();
 
+  let total: number;
   let results: ConsolidatedPerson[];
   if (cedula) {
     const key = `c:${cedula.toLowerCase()}`;
@@ -82,17 +85,21 @@ function handleSearch(url: URL, res: any) {
       const r = searchByCedula(store, cedula);
       return r ? [r] : [];
     });
+    total = results.length;
   } else if (name && name.length >= 2) {
     const key = `n:${name.toLowerCase()}`;
-    results = cache.wrap(key, () => searchByName(store, name));
+    const r = cache.wrap(key, () => searchByName(store, name));
+    results = r.results;
+    total = r.total; // cuántas matchearon en total (puede ser > results.length)
   } else {
     res.writeHead(400, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Indica ?cedula= o ?name= (mín. 2 caracteres).' }));
     return;
   }
 
+  // `count` = cuántas se devuelven; `total` = cuántas matchearon (para avisar si hay más).
   res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-  res.end(JSON.stringify({ count: results.length, results }));
+  res.end(JSON.stringify({ count: results.length, total, results }));
 }
 
 /** Lista de fuentes que el agregador consulta hoy (para mostrarlas en el landing). */

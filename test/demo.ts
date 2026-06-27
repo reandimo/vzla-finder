@@ -80,14 +80,14 @@ const p2 = feed('terremotovenezuela.com',
 
 check('sin cédula: NO se fusionan (siguen siendo 2 personas distintas)', p1 !== p2);
 
-const carlos = searchByName(store, 'Carlos Marin');
+const carlos = searchByName(store, 'Carlos Marin').results;
 check('sin cédula: ambos aparecen en búsqueda por nombre', carlos.length >= 2);
 
 // --- Escenario 4: persona común sin cédula no contamina a otra ---
 feed('venezuelatebusca.com',
   { sourceId: 'C1', fullName: 'María Fernanda Rodríguez', age: 28, state: 'Miranda' },
   'sin_contacto');
-const maria = searchByName(store, 'Maria Rodriguez');
+const maria = searchByName(store, 'Maria Rodriguez').results;
 check('búsqueda por nombre devuelve a la persona correcta',
   maria.some((m) => m.fullName.includes('María Fernanda')));
 

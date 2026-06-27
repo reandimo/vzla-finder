@@ -480,9 +480,19 @@
       const data = await res.json();
       if (!res.ok) { statusEl.textContent = data.error || 'No se pudo buscar.'; return; }
       const n = data.count;
-      statusEl.textContent = n === 0
-        ? 'Sin resultados.'
-        : `${n} resultado${n === 1 ? '' : 's'}${param === 'cedula' ? ' por cédula' : ' por nombre'}.`;
+      const total = data.total ?? n;
+      if (n === 0) {
+        statusEl.textContent = 'Sin resultados.';
+      } else if (param === 'cedula') {
+        statusEl.textContent = `${n} resultado${n === 1 ? '' : 's'} por cédula.`;
+      } else if (total > n) {
+        // Hubo más coincidencias de las que mostramos: invitar a afinar.
+        statusEl.textContent =
+          `${total} coincidencias por nombre · mostrando las ${n} más parecidas. ` +
+          'Si no está, afina con nombre y apellido.';
+      } else {
+        statusEl.textContent = `${n} resultado${n === 1 ? '' : 's'} por nombre.`;
+      }
       render(data);
     } catch {
       statusEl.textContent = 'No se pudo conectar. Reintenta en unos segundos.';

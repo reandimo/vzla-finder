@@ -36,9 +36,10 @@ async function main() {
       const r = searchByCedula(store, flags.cedula);
       r ? printPerson(r) : console.log('Sin resultados por cédula.');
     } else if (flags.name) {
-      const rs = searchByName(store, flags.name);
-      if (!rs.length) console.log('Sin resultados por nombre.');
-      rs.forEach(printPerson);
+      const { total, results } = searchByName(store, flags.name);
+      if (!results.length) console.log('Sin resultados por nombre.');
+      results.forEach(printPerson);
+      if (total > results.length) console.log(`… y ${total - results.length} más (afiná la búsqueda).`);
     } else {
       console.log('Usá --cedula <ced> o --name "<nombre>"');
     }
