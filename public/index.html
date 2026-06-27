@@ -122,6 +122,13 @@
   }
   .filter-count { font-size: 12px; color: var(--muted); margin-left: auto; }
 
+  .show-more {
+    display: block; width: 100%; margin: 8px 0 0; background: var(--card);
+    color: var(--accent); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px; font-weight: 600; font-size: 14px; cursor: pointer;
+  }
+  .show-more:hover { border-color: var(--accent); background: #fbfcfd; }
+
   /* Panel de fuentes consultadas */
   .panel {
     margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line);
@@ -333,11 +340,14 @@
 
   let currentResults = [];
   const filters = { status: 'all', region: '' };
+  const PAGE_SIZE = 12;
+  let shown = PAGE_SIZE;
 
   function render(data) {
     currentResults = data.results || [];
     filters.status = 'all';
     filters.region = '';
+    shown = PAGE_SIZE;
     buildFilters(currentResults);
     renderCards();
   }
@@ -364,7 +374,7 @@
       resultsEl.innerHTML = '<div class="empty">Ningún resultado con esos filtros. <b>Ajústalos</b> o quítalos.</div>';
       return;
     }
-    for (const p of list) {
+    for (const p of list.slice(0, shown)) {
       const safe = p.consolidatedStatus === 'localizado';
       const card = document.createElement('article');
       card.className = 'card';
@@ -414,6 +424,15 @@
         </div>`;
       resultsEl.appendChild(card);
     }
+
+    if (list.length > shown) {
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'show-more';
+      more.textContent = `Mostrar más resultados (${list.length - shown})`;
+      more.addEventListener('click', () => { shown += PAGE_SIZE; renderCards(); });
+      resultsEl.appendChild(more);
+    }
   }
 
   function buildFilters(results) {
@@ -435,6 +454,7 @@
     statusBox.querySelectorAll('.fchip').forEach((b) => b.addEventListener('click', () => {
       filters.status = b.dataset.status;
       statusBox.querySelectorAll('.fchip').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      shown = PAGE_SIZE;
       renderCards();
     }));
 
@@ -445,7 +465,7 @@
       regionSel.innerHTML = '<option value="">Toda región</option>' +
         regions.map((r) => `<option value="${esc(r)}">${esc(r)}</option>`).join('');
       regionSel.value = '';
-      regionSel.onchange = () => { filters.region = regionSel.value; renderCards(); };
+      regionSel.onchange = () => { filters.region = regionSel.value; shown = PAGE_SIZE; renderCards(); };
     } else {
       regionSel.hidden = true; regionSel.innerHTML = '';
     }

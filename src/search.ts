@@ -21,7 +21,7 @@ export function searchByCedula(
 export function searchByName(
   store: Store,
   query: string,
-  limit = 25,
+  limit = 60,
 ): ConsolidatedPerson[] {
   const norm = normalizeName(query);
   const rough = store.searchByNameTokens(norm.split(' '));
