@@ -38,9 +38,14 @@ sleep $(( RANDOM % 60 ))
 cd "$APP_ROOT"
 echo "$(date -Is) [start] ingesta" >> "$LOG"
 
-# Node 24: node:sqlite es estable; el flag se acepta igual por compatibilidad
-# con los scripts de package.json.
-if "$NODE_BIN" --experimental-sqlite --import tsx src/cli.ts ingest >> "$LOG" 2>&1; then
+# IMPORTANTE: usamos el transform de TypeScript NATIVO de Node 24
+# (--experimental-transform-types, basado en SWC/Rust), NO tsx/esbuild. En
+# hosting con CloudLinux/LVE, el servicio Go de esbuild crea muchos hilos y LVE
+# lo mata ("The service was stopped" → TransformError), dejando la ingesta
+# colgada y saturando el cupo de procesos. El transform nativo no tiene ese
+# problema. `timeout` es un seguro: si algo se cuelga, se mata solo (nunca más
+# una ingesta zombi reteniendo el lock por horas).
+if timeout 600 "$NODE_BIN" --experimental-sqlite --experimental-transform-types src/cli.ts ingest >> "$LOG" 2>&1; then
   echo "$(date -Is) [ok] ingesta completa" >> "$LOG"
 else
   rc=$?
