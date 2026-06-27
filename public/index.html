@@ -338,6 +338,17 @@
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
+  // Solo deja pasar URLs http/https. Los enlaces y fotos vienen de datos
+  // scrapeados de terceros; esto evita esquemas peligrosos (javascript:, data:)
+  // que podrían ejecutarse al hacer clic. Devuelve null si no es http(s).
+  function safeUrl(u) {
+    if (!u) return null;
+    try {
+      const x = new URL(u, location.origin);
+      return (x.protocol === 'http:' || x.protocol === 'https:') ? x.href : null;
+    } catch { return null; }
+  }
+
   let currentResults = [];
   const filters = { status: 'all', region: '' };
   const PAGE_SIZE = 12;
@@ -392,14 +403,16 @@
       const ref = p.lastSeenRef
         ? `<p class="ref">Última referencia: <b>${esc(p.lastSeenRef)}</b></p>` : '';
       // Foto: ayuda a confirmar identidad cuando no hay cédula. Si no carga, se oculta.
-      const photo = p.photoUrl
-        ? `<img class="photo" src="${esc(p.photoUrl)}" alt="" loading="lazy"
+      const photoUrl = safeUrl(p.photoUrl);
+      const photo = photoUrl
+        ? `<img class="photo" src="${esc(photoUrl)}" alt="" loading="lazy"
                 onerror="this.remove()" />` : '';
 
       const chips = p.sources.map((s) => {
         const label = esc(s.sourceDomain);
-        return s.sourceUrl
-          ? `<a class="chip" href="${esc(s.sourceUrl)}" target="_blank" rel="noopener noreferrer">${label}</a>`
+        const url = safeUrl(s.sourceUrl);
+        return url
+          ? `<a class="chip" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`
           : `<span class="chip">${label}</span>`;
       }).join('');
 

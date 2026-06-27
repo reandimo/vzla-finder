@@ -207,14 +207,30 @@ export class Store {
   }
 
   // --- search ---
-  /** Candidatos cuyo nombre normalizado contiene CUALQUIERA de los tokens. */
+  /**
+   * Candidatos cuyo nombre normalizado contiene CUALQUIERA de los tokens.
+   *
+   * Clave: ordena por CUÁNTOS tokens del query aparecen en el nombre ANTES de
+   * cortar. Con un nombre común (p. ej. "maría" o "gonzález") puede haber miles
+   * de coincidencias parciales; si cortáramos sin ordenar (LIMIT a secas), la
+   * persona que matchea TODOS los tokens podría quedar fuera del corte y la
+   * familia vería "sin resultados" aunque esté en la base. Al rankear por
+   * cantidad de tokens, los matches más completos entran primero. El ranking
+   * fino por similitud (con tolerancia a typos/orden) lo hace searchByName.
+   */
   searchByNameTokens(tokens: string[]): PersonRecord[] {
     const clean = tokens.filter((t) => t.length >= 2);
     if (!clean.length) return [];
+    const likeArgs = clean.map((t) => `%${t}%`);
     const where = clean.map(() => 'name_normalized LIKE ?').join(' OR ');
+    // (name_normalized LIKE ?) da 1/0 en SQLite; la suma = nº de tokens presentes.
+    const score = clean.map(() => '(name_normalized LIKE ?)').join(' + ');
     const rows = this.db
-      .prepare(`SELECT * FROM persons WHERE ${where} LIMIT 500`)
-      .all(...clean.map((t) => `%${t}%`));
+      .prepare(
+        `SELECT * FROM persons WHERE ${where} ORDER BY (${score}) DESC LIMIT 800`,
+      )
+      // Primero los args del WHERE, luego los del ORDER BY (mismo orden de aparición).
+      .all(...likeArgs, ...likeArgs);
     return (rows as any[]).map(rowToPerson);
   }
 

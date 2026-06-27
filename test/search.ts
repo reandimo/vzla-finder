@@ -57,5 +57,18 @@ const lim = searchByName(store, 'carlos marin', 1);
 check('respeta el límite (limit=1)', lim.results.length === 1);
 check('total refleja todas las coincidencias aunque se recorten', lim.total === 2);
 
+// --- regresión (falso negativo a escala): con MUCHÍSIMAS coincidencias de un
+// solo token, la persona que matchea TODOS los tokens debe sobrevivir al corte
+// de candidatos. Si no, una familia buscando "Nombre Apellido" no la encontraría
+// aunque esté en la base. Insertamos 850 ruidos "… Pérez" + 1 target añadido al
+// final (rowid alto, el que un LIMIT sin orden descartaría primero). ---
+for (let i = 0; i < 850; i++) {
+  feed('noise.com', { sourceId: `n${i}`, fullName: 'Pedro Perez', cedula: `V-1${String(i).padStart(7, '0')}` });
+}
+feed('z.com', { sourceId: 'target', fullName: 'Mariangel Perez', cedula: 'V-29.999.999', age: 22, state: 'Vargas' });
+const needle = searchByName(store, 'mariangel perez').results;
+check('match completo sobrevive entre 850 ruidos de un token (no falso negativo)',
+  needle.some((p) => p.fullName === 'Mariangel Perez'));
+
 console.log(`\n${pass} OK, ${fail} fallidas`);
 process.exit(fail === 0 ? 0 : 1);
