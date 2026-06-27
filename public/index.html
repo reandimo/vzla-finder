@@ -135,6 +135,13 @@
   .source-row a:hover { color: var(--accent); }
   .source-row .when { margin-left: auto; font-size: 12px; color: var(--muted); }
 
+  .dedup { margin-top: 14px; font-size: 13px; color: var(--muted); }
+  .dedup summary { cursor: pointer; color: var(--accent); font-weight: 600; list-style: revert; }
+  .dedup summary:hover { text-decoration: underline; }
+  .dedup p { margin: 10px 0 0; }
+  .dedup ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 7px; }
+  .dedup b { color: var(--ink); }
+
   /* Modal sugerir fuente */
   .modal[hidden] { display: none; }
   .modal {
@@ -216,13 +223,24 @@
     <div class="panel-head">
       <div>
         <h2 id="sources-title">Dónde buscamos</h2>
-        <p>Reunimos los reportes de estas plataformas ciudadanas en una sola búsqueda.</p>
+        <p id="sources-summary">Reunimos los reportes de estas plataformas ciudadanas en una sola búsqueda.</p>
       </div>
       <button type="button" class="ghost" id="suggest-open">Sugerir otra fuente</button>
     </div>
     <ul class="source-list" id="source-list">
       <li class="source-row"><span class="live off"></span><span>Cargando fuentes…</span></li>
     </ul>
+    <details class="dedup">
+      <summary>¿Cómo unimos los registros de varias plataformas?</summary>
+      <p>
+        Una misma persona suele estar reportada en varias plataformas. Las unimos así:
+      </p>
+      <ul>
+        <li><b>Por cédula = misma persona.</b> Si dos reportes comparten la cédula, se fusionan (coincidencia exacta). Las cédulas <b>V-</b> y <b>E-</b> nunca se confunden entre sí.</li>
+        <li><b>Sin cédula, no se fusiona solo.</b> Se trata como una <i>posible</i> coincidencia para revisión; nunca decidimos por ti que dos personas son la misma.</li>
+        <li><b>La buena noticia gana.</b> Si cualquier plataforma reporta a alguien como <i>localizado</i>, ese es el estado que ves —con quién lo reportó—.</li>
+      </ul>
+    </details>
   </section>
 
   <footer>
@@ -268,6 +286,7 @@
       <input id="s-name" type="text" placeholder="Ej: Venezuela Reporta" />
       <label for="s-note">Comentario (opcional)</label>
       <textarea id="s-note" placeholder="Algo que nos ayude a entender la fuente…"></textarea>
+      <div id="cf-turnstile" style="margin-top:14px"></div>
       <p class="modal-msg" id="suggest-msg" role="status" aria-live="polite"></p>
       <div class="modal-actions">
         <button type="button" class="ghost" id="suggest-cancel">Cancelar</button>
@@ -422,11 +441,50 @@
           <span class="when" title="Último cacheo: ${esc(fmtDate(s.lastFetched))}">${esc(when)}</span>
         </li>`;
       }).join('');
+
+      const summaryEl = document.getElementById('sources-summary');
+      if (summaryEl && typeof data.totalRecords === 'number') {
+        const n = data.totalRecords.toLocaleString('es-VE');
+        summaryEl.textContent =
+          `${n} registros reunidos de ${data.sources.length} plataforma${data.sources.length === 1 ? '' : 's'} ciudadanas, deduplicados por cédula.`;
+      }
+
+      // Turnstile anti-abuso: solo si el server lo tiene configurado.
+      if (data.turnstileSiteKey) {
+        turnstileSiteKey = data.turnstileSiteKey;
+        loadTurnstile();
+      }
     } catch {
       list.innerHTML = '<li class="source-row"><span class="live off"></span><span>No se pudo cargar la lista de fuentes.</span></li>';
     }
   }
   loadSources();
+
+  // --- Turnstile (anti-abuso del form, opcional) ---
+  let turnstileSiteKey = null;
+  let turnstileWidgetId = null;
+
+  function loadTurnstile() {
+    if (document.getElementById('cf-ts-script')) return;
+    const s = document.createElement('script');
+    s.id = 'cf-ts-script';
+    s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad';
+    s.async = true; s.defer = true;
+    document.head.appendChild(s);
+  }
+  window.onTurnstileLoad = function () {
+    const el = document.getElementById('cf-turnstile');
+    if (el && window.turnstile && turnstileSiteKey && turnstileWidgetId === null) {
+      turnstileWidgetId = window.turnstile.render(el, { sitekey: turnstileSiteKey });
+    }
+  };
+  function turnstileToken() {
+    return (turnstileSiteKey && window.turnstile && turnstileWidgetId !== null)
+      ? window.turnstile.getResponse(turnstileWidgetId) : '';
+  }
+  function turnstileReset() {
+    if (window.turnstile && turnstileWidgetId !== null) window.turnstile.reset(turnstileWidgetId);
+  }
 
   // --- Popup: sugerir nueva fuente ---
   const modal = document.getElementById('suggest-modal');
@@ -455,7 +513,13 @@
       url: document.getElementById('s-url').value.trim(),
       name: document.getElementById('s-name').value.trim(),
       note: document.getElementById('s-note').value.trim(),
+      turnstileToken: turnstileToken(),
     };
+    if (turnstileSiteKey && !payload.turnstileToken) {
+      suggestMsg.className = 'modal-msg err';
+      suggestMsg.textContent = 'Completa la verificación anti-bot antes de enviar.';
+      return;
+    }
     suggestMsg.className = 'modal-msg';
     suggestMsg.textContent = 'Enviando…';
     try {
@@ -468,11 +532,13 @@
       if (!res.ok) {
         suggestMsg.className = 'modal-msg err';
         suggestMsg.textContent = data.error || 'No se pudo enviar. Reintenta.';
+        turnstileReset();
         return;
       }
       suggestMsg.className = 'modal-msg ok';
       suggestMsg.textContent = '¡Gracias! La revisaremos para sumarla.';
       suggestForm.reset();
+      turnstileReset();
       setTimeout(closeModal, 1600);
     } catch {
       suggestMsg.className = 'modal-msg err';

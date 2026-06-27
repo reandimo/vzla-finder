@@ -219,6 +219,11 @@ export class Store {
     return (this.db.prepare('SELECT * FROM persons').all() as any[]).map(rowToPerson);
   }
 
+  /** Total de personas únicas registradas (tras deduplicar). Para el landing. */
+  countPersons(): number {
+    return (this.db.prepare('SELECT COUNT(*) AS n FROM persons').get() as any).n;
+  }
+
   // --- sugerencias de fuentes ---
   addSourceSuggestion(s: { name: string | null; url: string; note: string | null; createdAt: string }) {
     this.db

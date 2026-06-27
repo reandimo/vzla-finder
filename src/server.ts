@@ -16,11 +16,17 @@ import { Store } from './db.ts';
 import { searchByCedula, searchByName } from './search.ts';
 import { QueryCache } from './cache.ts';
 import { adapters } from './sources/index.ts';
+import { notifySuggestion } from './notify.ts';
 import type { ConsolidatedPerson } from './types.ts';
 
 const DB_PATH = process.env.VZLA_DB ?? 'data.db';
 const PORT = Number(process.env.PORT ?? 3000);
 const PUBLIC_DIR = fileURLToPath(new URL('../public', import.meta.url));
+
+// Cloudflare Turnstile (anti-abuso del form de sugerencias). OPCIONAL: si no hay
+// secret configurado, no se exige verificación (el form sigue funcionando igual).
+const TURNSTILE_SITEKEY = process.env.TURNSTILE_SITEKEY ?? '';
+const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET ?? '';
 
 const store = new Store(DB_PATH);
 const cache = new QueryCache<ConsolidatedPerson[]>(30_000);
@@ -90,7 +96,33 @@ function handleSources(res: any) {
     };
   });
   res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-  res.end(JSON.stringify({ count: sources.length, sources }));
+  res.end(JSON.stringify({
+    count: sources.length,
+    totalRecords: store.countPersons(),
+    turnstileSiteKey: TURNSTILE_SITEKEY || null,
+    sources,
+  }));
+}
+
+/**
+ * Verifica el token de Turnstile contra Cloudflare. Si no hay secret configurado,
+ * devuelve true (verificación deshabilitada). Falla cerrado ante errores.
+ */
+async function verifyTurnstile(token: string, ip: string): Promise<boolean> {
+  if (!TURNSTILE_SECRET) return true; // no configurado → no se exige
+  if (!token) return false;
+  try {
+    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ secret: TURNSTILE_SECRET, response: token, ...(ip ? { remoteip: ip } : {}) }),
+      signal: AbortSignal.timeout(8000),
+    });
+    const data = (await res.json()) as { success?: boolean };
+    return !!data.success;
+  } catch {
+    return false;
+  }
 }
 
 /** Recibe una sugerencia de nueva fuente desde el popup del landing. */
@@ -115,12 +147,23 @@ async function handleSuggestSource(req: any, res: any) {
     return;
   }
 
-  store.addSourceSuggestion({
+  // Anti-abuso: verificación Turnstile (si está configurada).
+  const ip = String(req.headers['cf-connecting-ip'] ?? req.socket?.remoteAddress ?? '');
+  const human = await verifyTurnstile(String(body?.turnstileToken ?? ''), ip);
+  if (!human) {
+    res.writeHead(403, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'No pudimos verificar que no eres un bot. Recarga la página e inténtalo de nuevo.' }));
+    return;
+  }
+
+  const suggestion = {
     name: name.slice(0, 200) || null,
     url: url.slice(0, 2000),
     note: note.slice(0, 1000) || null,
     createdAt: new Date().toISOString(),
-  });
+  };
+  store.addSourceSuggestion(suggestion);
+  notifySuggestion(suggestion); // aviso por email (fire-and-forget, no bloquea)
 
   res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify({ ok: true }));
