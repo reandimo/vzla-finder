@@ -6,6 +6,7 @@ import type { SourceAdapter } from '../types.ts';
 import { VenezuelaTeBuscaAdapter } from './venezuelatebusca.ts';
 import { EstoyAquiAdapter } from './estoyaqui.ts';
 import { DesaparecidosVenezuelaAdapter } from './desaparecidosvenezuela.ts';
+import { AfectadosAdapter } from './afectados.ts';
 
 // Solo fuentes con scraping REAL: no inyectamos datos sintéticos en producción.
 //
@@ -17,4 +18,5 @@ export const adapters: SourceAdapter[] = [
   new VenezuelaTeBuscaAdapter(),       // React Router /_root.data (turbo-stream), trae cédula
   new EstoyAquiAdapter(),              // API JSON /api/encontradas, trae cédula
   new DesaparecidosVenezuelaAdapter(), // API JSON /api/personas (sin cédula), trae lat/lng
+  new AfectadosAdapter(),              // HTML/SSR multipágina (cédula enmascarada = pista)
 ];

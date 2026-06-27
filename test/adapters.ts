@@ -7,6 +7,7 @@ import { VenezuelaTeBuscaAdapter, unflatten } from '../src/sources/venezuelatebu
 import { DesaparecidosTerremotoAdapter } from '../src/sources/desaparecidos.ts';
 import { EstoyAquiAdapter } from '../src/sources/estoyaqui.ts';
 import { DesaparecidosVenezuelaAdapter } from '../src/sources/desaparecidosvenezuela.ts';
+import { AfectadosAdapter } from '../src/sources/afectados.ts';
 
 let pass = 0, fail = 0;
 const check = (n: string, c: boolean) => { console.log(`${c ? '✅' : '❌'} ${n}`); c ? pass++ : fail++; };
@@ -64,6 +65,39 @@ check('dvz: fotoUrl relativa → absoluta',
   (dvz[0].photoUrl ?? '').startsWith('https://www.desaparecidosvenezuela.com/api/personas'));
 check('dvz: sourceUrl apunta a la ficha /p/<id>',
   dvz[0].sourceUrl === 'https://www.desaparecidosvenezuela.com/p/des-1');
+
+// --- afectados: HTML/SSR multipágina, cédula enmascarada como pista (no merge) ---
+const afAdapter = new AfectadosAdapter();
+const desapHtml = read('afectados.html');
+const af = afAdapter.parse(JSON.stringify([
+  { path: '/desaparecidos', status: 'sin_contacto', html: desapHtml },
+]));
+check('afectados: scrapea las 2 cards', af.length === 2);
+check('afectados: nombre y edad', af[0].fullName === 'Donis María Roque Tovar' && af[0].age === 44);
+check('afectados: página desaparecidos → sin_contacto', af.every((r) => r.status === 'sin_contacto'));
+check('afectados: cédula enmascarada NO va a cedula (sin merge)', af.every((r) => r.cedula === undefined));
+check('afectados: cédula parcial queda como pista en la referencia',
+  (af[0].reference ?? '').includes('Cédula parcial: V-14.XXX.917'));
+check('afectados: "No registrada" no genera pista de cédula',
+  !(af[1].reference ?? '').includes('Cédula parcial'));
+check('afectados: última actualización → ISO con offset Venezuela',
+  af[0].lastSeenAt === '2026-06-26T10:42:00-04:00');
+check('afectados: foto Supabase se conserva absoluta',
+  (af[0].photoUrl ?? '').startsWith('https://wnvnkjitwmjlrjhkoiud.supabase.co'));
+check('afectados: id estable entre corridas',
+  afAdapter.parse(JSON.stringify([{ path: '/desaparecidos', status: 'sin_contacto', html: desapHtml }]))[0].sourceId === af[0].sourceId);
+
+// Estado por página: hospitalizados/rescatados → localizado; fallecido se descarta.
+const afLoc = afAdapter.parse(JSON.stringify([
+  { path: '/hospitalizados', status: 'localizado', html:
+    '<div class="rounded-xl"><h3 class="font-bold">Martinez Gabriel</h3>' +
+    '<span>Hospitalizado</span><span>Cédula: No registrada</span>' +
+    '<span>Centro médico: Caracas, Distrito Capital</span></div>' },
+  { path: '/fallecidos', status: 'localizado', html:
+    '<div class="rounded-xl"><h3 class="font-bold">Persona Fallecida</h3><span>Fallecido</span></div>' },
+]));
+check('afectados: hospitalizado → localizado', afLoc.length === 1 && afLoc[0].status === 'localizado');
+check('afectados: card "Fallecido" se descarta', !afLoc.some((r) => /Fallecida/.test(r.fullName)));
 
 console.log(`\n${pass} OK, ${fail} fallidas`);
 process.exit(fail === 0 ? 0 : 1);
