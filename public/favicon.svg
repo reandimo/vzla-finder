@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Búsqueda Unificada Venezuela">
+  <rect width="64" height="64" rx="14" fill="#0f6e6e"/>
+  <!-- franja tricolor sutil (Venezuela) -->
+  <rect x="0" y="52" width="64" height="4" fill="#ffce00"/>
+  <rect x="0" y="56" width="64" height="4" fill="#00247d"/>
+  <rect x="0" y="60" width="64" height="4" fill="#cf142b"/>
+  <!-- lupa -->
+  <circle cx="28" cy="27" r="12" fill="none" stroke="#ffffff" stroke-width="4.5"/>
+  <line x1="37" y1="36" x2="47" y2="46" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>
+</svg>

@@ -43,6 +43,11 @@ const MIME: Record<string, string> = {
   '.js': 'text/javascript; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.json': 'application/json; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8',         // robots.txt
+  '.xml': 'application/xml; charset=utf-8',     // sitemap.xml
+  '.ico': 'image/x-icon',
+  '.png': 'image/png',
+  '.webmanifest': 'application/manifest+json',
 };
 
 const server = createServer(async (req, res) => {
