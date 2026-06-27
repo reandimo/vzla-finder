@@ -114,7 +114,7 @@ npm run search -- --name "carlos marin"
 
 ## 📦 Deploy
 
-Corre en hosting compartido **cPanel / CloudLinux** (Passenger + cron) o en cualquier server con Node 22+. Pasos en **[DEPLOY.md](DEPLOY.md)**. La base de datos con datos personales vive **fuera del docroot** y nunca se versiona.
+Corre en hosting compartido **cPanel / CloudLinux** (Node.js Selector + cron) o en cualquier server con Node 22+ (`passenger-app.cjs` levanta el server en `process.env.PORT`). La base de datos con datos personales vive **fuera del docroot** y nunca se versiona.
 
 ---
 
