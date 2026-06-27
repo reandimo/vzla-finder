@@ -68,8 +68,8 @@ El **cacheo es cortés**: requests condicionales (`ETag`/`Last-Modified`/hash) e
 | estoyaquive.up.railway.app | API `/api/encontradas` | ✅ | 🟢 **scraping en vivo** |
 | desaparecidosvenezuela.com | API `/api/personas` | — | 🟢 **scraping en vivo** |
 | afectadosporelterremotovenezuela.com | HTML/SSR (desaparecidos · hospitalizados · rescatados) | 🔸 enmascarada (pista, no merge) | 🟢 **scraping en vivo** |
+| venezuelareporta.org | HTML/SSR `/buscar` paginado (UUID por ficha) | — | 🟢 **scraping en vivo** (incremental) |
 | desaparecidosterremotovenezuela.com | API protegida | — | 🔒 bloqueada por reCAPTCHA (no se fuerza) |
-| venezuelareporta.org | HTML/RSC (Supabase) | — | ⏳ candidata |
 
 > Las fuentes activas se scrapean en vivo periódicamente (según el intervalo de
 > cada fuente), con requests corteses y respeto del cacheo. Solo se integran

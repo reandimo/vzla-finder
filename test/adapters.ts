@@ -8,6 +8,7 @@ import { DesaparecidosTerremotoAdapter } from '../src/sources/desaparecidos.ts';
 import { EstoyAquiAdapter } from '../src/sources/estoyaqui.ts';
 import { DesaparecidosVenezuelaAdapter } from '../src/sources/desaparecidosvenezuela.ts';
 import { AfectadosAdapter } from '../src/sources/afectados.ts';
+import { VenezuelaReportaAdapter } from '../src/sources/venezuelareporta.ts';
 
 let pass = 0, fail = 0;
 const check = (n: string, c: boolean) => { console.log(`${c ? '✅' : '❌'} ${n}`); c ? pass++ : fail++; };
@@ -98,6 +99,19 @@ const afLoc = afAdapter.parse(JSON.stringify([
 ]));
 check('afectados: hospitalizado → localizado', afLoc.length === 1 && afLoc[0].status === 'localizado');
 check('afectados: card "Fallecido" se descarta', !afLoc.some((r) => /Fallecida/.test(r.fullName)));
+
+// --- venezuelareporta: HTML/SSR paginado, UUID por ficha, sin cédula ---
+const vr = new VenezuelaReportaAdapter().parse(JSON.stringify([read('venezuelareporta.html')]));
+check('vr: scrapea las 2 tarjetas', vr.length === 2);
+check('vr: sourceId = UUID de la ficha', vr[0].sourceId === 'f21e2ec9-4cd5-4142-8a2e-1fe53d71a02e');
+check('vr: sourceUrl apunta a /reporte/<uuid>',
+  vr[0].sourceUrl === 'https://venezuelareporta.org/reporte/f21e2ec9-4cd5-4142-8a2e-1fe53d71a02e');
+check('vr: nombre y edad desde la línea meta', vr[0].fullName === 'Olivia perez Hernández' && vr[0].age === 28);
+check('vr: referencia = meta sin la edad', vr[0].reference === 'La guaira · Los corales');
+check('vr: "Se busca" → sin_contacto', vr[0].status === 'sin_contacto');
+check('vr: "A salvo" → localizado', vr[1].status === 'localizado');
+check('vr: sin cédula', vr.every((r) => r.cedula === undefined));
+check('vr: foto Supabase absoluta', (vr[0].photoUrl ?? '').startsWith('https://wlvcfbuxkdrxhxqlwwmo.supabase.co'));
 
 console.log(`\n${pass} OK, ${fail} fallidas`);
 process.exit(fail === 0 ? 0 : 1);

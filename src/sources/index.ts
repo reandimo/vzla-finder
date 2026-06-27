@@ -7,6 +7,7 @@ import { VenezuelaTeBuscaAdapter } from './venezuelatebusca.ts';
 import { EstoyAquiAdapter } from './estoyaqui.ts';
 import { DesaparecidosVenezuelaAdapter } from './desaparecidosvenezuela.ts';
 import { AfectadosAdapter } from './afectados.ts';
+import { VenezuelaReportaAdapter } from './venezuelareporta.ts';
 
 // Solo fuentes con scraping REAL: no inyectamos datos sintéticos en producción.
 //
@@ -19,4 +20,5 @@ export const adapters: SourceAdapter[] = [
   new EstoyAquiAdapter(),              // API JSON /api/encontradas, trae cédula
   new DesaparecidosVenezuelaAdapter(), // API JSON /api/personas (sin cédula), trae lat/lng
   new AfectadosAdapter(),              // HTML/SSR multipágina (cédula enmascarada = pista)
+  new VenezuelaReportaAdapter(),       // HTML/SSR paginado (sin cédula), UUID por ficha, incremental
 ];
