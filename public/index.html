@@ -163,6 +163,18 @@
     color: #8a5a00; background: #fff4e0; border: 1px solid #f0d49a; white-space: nowrap;
   }
   .dup-badge::before { content: "⚠ "; }
+  .dup-group {
+    display: grid; gap: 10px; padding: 10px;
+    border: 1px dashed #f0d49a; border-radius: 16px; background: #fffdf6;
+  }
+  .dup-group .card { margin: 0; }
+  .dup-toggle {
+    justify-self: start; font: inherit; font-size: 13px; font-weight: 600;
+    color: #8a5a00; background: #fff4e0; border: 1px solid #f0d49a;
+    border-radius: 999px; padding: 5px 14px; cursor: pointer;
+  }
+  .dup-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  .dup-members { display: grid; gap: 12px; }
 
   .empty {
     background: var(--card); border: 1px dashed var(--line); border-radius: 14px;
@@ -477,6 +489,78 @@
     return true;
   }
 
+  // Construye la tarjeta de una persona. `badgeHtml` se inserta junto al nombre.
+  function makeCard(p, badgeHtml) {
+    const safe = p.consolidatedStatus === 'localizado';
+    const card = document.createElement('article');
+    card.className = 'card';
+
+    const genderLabel = { M: 'Hombre', F: 'Mujer' }[p.gender] || (p.gender ? esc(p.gender) : null);
+    const meta = [
+      p.cedula ? `<b>${esc(p.cedula)}</b>` : null,
+      p.age != null ? `${esc(p.age)} años` : null,
+      genderLabel,
+      p.lastSeenState ? esc(p.lastSeenState) : null,
+      p.lastSeenCity ? esc(p.lastSeenCity) : null,
+    ].filter(Boolean).join(' · ');
+
+    // Sector/referencia: clave para distinguir a dos personas con el mismo nombre.
+    const ref = p.lastSeenRef
+      ? `<p class="ref">Última referencia: <b>${esc(p.lastSeenRef)}</b></p>` : '';
+    // Foto: ayuda a confirmar identidad cuando no hay cédula. Si no carga, se oculta.
+    const photoUrl = safeUrl(p.photoUrl);
+    const photo = photoUrl
+      ? `<img class="photo" src="${esc(photoUrl)}" alt="" loading="lazy" onerror="this.remove()" />` : '';
+
+    const chips = p.sources.map((s) => {
+      const label = esc(s.sourceDomain);
+      const url = safeUrl(s.sourceUrl);
+      return url
+        ? `<a class="chip" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`
+        : `<span class="chip">${label}</span>`;
+    }).join('');
+
+    card.innerHTML = `
+      <div class="banner ${safe ? 'safe' : 'waiting'}">
+        <span class="dot"></span>${safe ? 'Localizado' : 'Sin contacto'}
+      </div>
+      <div class="body">
+        <div class="identity">
+          ${photo}
+          <div class="idtext">
+            <p class="name">${esc(p.fullName)}${badgeHtml || ''}</p>
+            <p class="meta">${meta || '—'}</p>
+            ${ref}
+            ${safe && p.resolvedBy ? `<p class="resolved">Reportado a salvo por ${esc(p.resolvedBy)}.</p>` : ''}
+          </div>
+        </div>
+        <div class="sources">
+          <div class="sources-label">Reportado en ${p.sources.length} fuente${p.sources.length === 1 ? '' : 's'}</div>
+          <div class="chips">${chips}</div>
+        </div>
+      </div>`;
+    return card;
+  }
+
+  // Representante de un grupo de posibles duplicados:
+  // cédula > localizado > ficha más completa (foto/edad/ref/zona) > más reciente.
+  function repScore(p) {
+    let s = 0;
+    if (p.cedula) s += 1000;
+    if (p.consolidatedStatus === 'localizado') s += 100;
+    if (safeUrl(p.photoUrl)) s += 10;
+    if (p.age != null) s += 5;
+    if (p.lastSeenRef) s += 3;
+    if (p.lastSeenState || p.lastSeenCity) s += 2;
+    return s;
+  }
+  function byRepScore(a, b) {
+    return (repScore(b) - repScore(a)) || String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''));
+  }
+  function dupBadge(label, title) {
+    return ` <span class="dup-badge" title="${esc(title)}">${esc(label)}</span>`;
+  }
+
   function renderCards() {
     resultsEl.innerHTML = '';
     if (!currentResults.length) {
@@ -493,66 +577,59 @@
       resultsEl.innerHTML = '<div class="empty">Ningún resultado con esos filtros. <b>Ajústalos</b> o quítalos.</div>';
       return;
     }
-    for (const p of list.slice(0, shown)) {
-      const safe = p.consolidatedStatus === 'localizado';
-      const card = document.createElement('article');
-      card.className = 'card';
 
-      const genderLabel = { M: 'Hombre', F: 'Mujer' }[p.gender] || (p.gender ? esc(p.gender) : null);
-      const meta = [
-        p.cedula ? `<b>${esc(p.cedula)}</b>` : null,
-        p.age != null ? `${esc(p.age)} años` : null,
-        genderLabel,
-        p.lastSeenState ? esc(p.lastSeenState) : null,
-        p.lastSeenCity ? esc(p.lastSeenCity) : null,
-      ].filter(Boolean).join(' · ');
-
-      // Sector/referencia: clave para distinguir a dos personas con el mismo nombre.
-      const ref = p.lastSeenRef
-        ? `<p class="ref">Última referencia: <b>${esc(p.lastSeenRef)}</b></p>` : '';
-      // Foto: ayuda a confirmar identidad cuando no hay cédula. Si no carga, se oculta.
-      const photoUrl = safeUrl(p.photoUrl);
-      const photo = photoUrl
-        ? `<img class="photo" src="${esc(photoUrl)}" alt="" loading="lazy"
-                onerror="this.remove()" />` : '';
-
-      const chips = p.sources.map((s) => {
-        const label = esc(s.sourceDomain);
-        const url = safeUrl(s.sourceUrl);
-        return url
-          ? `<a class="chip" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`
-          : `<span class="chip">${label}</span>`;
-      }).join('');
-
-      card.innerHTML = `
-        <div class="banner ${safe ? 'safe' : 'waiting'}">
-          <span class="dot"></span>${safe ? 'Localizado' : 'Sin contacto'}
-        </div>
-        <div class="body">
-          <div class="identity">
-            ${photo}
-            <div class="idtext">
-              <p class="name">${esc(p.fullName)}${p.dupCount > 1
-                ? ` <span class="dup-badge" title="Podría ser la misma persona que otros ${p.dupCount - 1} resultado${p.dupCount - 1 === 1 ? '' : 's'} de esta búsqueda (nombre muy parecido). No los unimos automáticamente sin cédula.">posible duplicado</span>`
-                : ''}</p>
-              <p class="meta">${meta || '—'}</p>
-              ${ref}
-              ${safe && p.resolvedBy ? `<p class="resolved">Reportado a salvo por ${esc(p.resolvedBy)}.</p>` : ''}
-            </div>
-          </div>
-          <div class="sources">
-            <div class="sources-label">Reportado en ${p.sources.length} fuente${p.sources.length === 1 ? '' : 's'}</div>
-            <div class="chips">${chips}</div>
-          </div>
-        </div>`;
-      resultsEl.appendChild(card);
+    // Agrupa por dupGroup preservando el orden de aparición. Un grupo que tras los
+    // filtros queda con 1 miembro se muestra como tarjeta suelta (sin badge).
+    const units = [];
+    const idx = new Map();
+    for (const p of list) {
+      if (p.dupGroup == null) { units.push({ members: [p] }); continue; }
+      if (idx.has(p.dupGroup)) units[idx.get(p.dupGroup)].members.push(p);
+      else { idx.set(p.dupGroup, units.length); units.push({ members: [p] }); }
     }
 
-    if (list.length > shown) {
+    for (const u of units.slice(0, shown)) {
+      if (u.members.length === 1) { resultsEl.appendChild(makeCard(u.members[0], '')); continue; }
+
+      // Grupo colapsado: representante visible + el resto desplegable (nunca oculto del todo).
+      const members = u.members.slice().sort(byRepScore);
+      const rest = members.slice(1);
+      const wrap = document.createElement('div');
+      wrap.className = 'dup-group';
+      wrap.appendChild(makeCard(members[0], dupBadge(
+        `posible duplicado · ${members.length}`,
+        `Agrupamos ${members.length} resultados con nombre muy parecido (posible misma persona). Mostramos el más completo; los demás están abajo. No los unimos automáticamente sin cédula.`)));
+
+      const box = document.createElement('div');
+      box.className = 'dup-members';
+      box.hidden = true;
+      for (const m of rest) {
+        box.appendChild(makeCard(m, dupBadge('posible duplicado',
+          'Nombre muy parecido al de arriba; podría ser la misma persona. No los unimos sin cédula.')));
+      }
+
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'dup-toggle';
+      const showTxt = `Ver ${rest.length} posible${rest.length === 1 ? '' : 's'} duplicado${rest.length === 1 ? '' : 's'} ▾`;
+      toggle.textContent = showTxt;
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.addEventListener('click', () => {
+        box.hidden = !box.hidden;
+        toggle.setAttribute('aria-expanded', String(!box.hidden));
+        toggle.textContent = box.hidden ? showTxt : 'Ocultar duplicados ▴';
+      });
+
+      wrap.appendChild(toggle);
+      wrap.appendChild(box);
+      resultsEl.appendChild(wrap);
+    }
+
+    if (units.length > shown) {
       const more = document.createElement('button');
       more.type = 'button';
       more.className = 'show-more';
-      more.textContent = `Mostrar más resultados (${list.length - shown})`;
+      more.textContent = `Mostrar más resultados (${units.length - shown})`;
       more.addEventListener('click', () => { shown += PAGE_SIZE; renderCards(); });
       resultsEl.appendChild(more);
     }
