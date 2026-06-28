@@ -506,8 +506,11 @@
   }
 
   // Construye la tarjeta de una persona. `badgeHtml` se inserta junto al nombre.
-  function makeCard(p, badgeHtml) {
+  // `sourcesOverride` permite pintar fuentes ajenas a `p` (p. ej. la unión de
+  // todas las fuentes de un grupo de posibles duplicados en la tarjeta representante).
+  function makeCard(p, badgeHtml, sourcesOverride) {
     const safe = p.consolidatedStatus === 'localizado';
+    const sources = sourcesOverride || p.sources;
     const card = document.createElement('article');
     card.className = 'card';
 
@@ -528,7 +531,7 @@
     const photo = photoUrl
       ? `<img class="photo" src="${esc(photoUrl)}" alt="" loading="lazy" onerror="this.remove()" />` : '';
 
-    const chips = p.sources.map((s) => {
+    const chips = sources.map((s) => {
       const label = esc(s.sourceDomain);
       const url = safeUrl(s.sourceUrl);
       return url
@@ -551,7 +554,7 @@
           </div>
         </div>
         <div class="sources">
-          <div class="sources-label">Reportado en ${p.sources.length} fuente${p.sources.length === 1 ? '' : 's'}</div>
+          <div class="sources-label">Reportado en ${sources.length} fuente${sources.length === 1 ? '' : 's'}</div>
           <div class="chips">${chips}</div>
         </div>
       </div>`;
@@ -610,11 +613,26 @@
       // Grupo colapsado: representante visible + el resto desplegable (nunca oculto del todo).
       const members = u.members.slice().sort(byRepScore);
       const rest = members.slice(1);
+
+      // Unión de fuentes de TODO el grupo: colapsado, el representante muestra dónde
+      // está reportado cualquier posible duplicado (no solo él). Dedup por dominio+enlace.
+      const groupSources = [];
+      const seenSrc = new Set();
+      for (const m of members) {
+        for (const s of (m.sources || [])) {
+          const key = `${s.sourceDomain}|${safeUrl(s.sourceUrl) || ''}`;
+          if (seenSrc.has(key)) continue;
+          seenSrc.add(key);
+          groupSources.push(s);
+        }
+      }
+
       const wrap = document.createElement('div');
       wrap.className = 'dup-group';
       wrap.appendChild(makeCard(members[0], dupBadge(
         `posible duplicado · ${members.length}`,
-        `Agrupamos ${members.length} resultados con nombre muy parecido (posible misma persona). Mostramos el más completo; los demás están abajo. No los unimos automáticamente sin cédula.`)));
+        `Agrupamos ${members.length} resultados con nombre muy parecido (posible misma persona). Mostramos el más completo; los demás están abajo. No los unimos automáticamente sin cédula.`),
+        groupSources));
 
       const box = document.createElement('div');
       box.className = 'dup-members';
