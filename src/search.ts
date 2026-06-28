@@ -5,7 +5,7 @@
  */
 import { Store } from './db.ts';
 import { consolidate } from './reconcile.ts';
-import { normalizeCedula, normalizeName, nameSimilarity } from './normalize.ts';
+import { normalizeCedula, normalizeName, nameSimilarity, levenshtein } from './normalize.ts';
 import type { ConsolidatedPerson } from './types.ts';
 
 /** Resultado con la marca (no destructiva) de "posible duplicado". */
@@ -53,40 +53,81 @@ function nameTokens(p: ConsolidatedPerson): Set<string> {
   return new Set((p.nameNormalized || normalizeName(p.fullName)).split(' ').filter((t) => t.length >= 3));
 }
 
+/** "Fuerza" de una ficha para elegirla como ancla/representante del grupo. */
+function strength(p: ConsolidatedPerson): number {
+  let s = 0;
+  if (p.cedula) s += 1000;
+  if (p.consolidatedStatus === 'localizado') s += 100;
+  if (p.photoUrl) s += 10;
+  if (p.age != null) s += 5;
+  if (p.lastSeenRef) s += 3;
+  if (p.lastSeenState || p.lastSeenCity) s += 2;
+  return s;
+}
+
+/** ¿Dos cédulas son un typo de la misma? Mismo prefijo y dígitos a distancia ≤1. */
+function cedulaTypo(ca: string, cb: string): boolean {
+  if (ca[0] !== cb[0]) return false;            // V/E/J/G distinto = nunca el mismo
+  const da = ca.slice(1), db = cb.slice(1);
+  if (da === db) return false;
+  return levenshtein(da, db) <= 1;              // 1 dígito cambiado / un 0 de más
+}
+
+/** ¿`a` y `b` son candidatos a "posible duplicado"? Predicado, NO fusión. */
+function linkable(a: ConsolidatedPerson, b: ConsolidatedPerson, ta: Set<string>, tb: Set<string>): boolean {
+  const ca = a.cedula, cb = b.cedula;
+  if (ca && cb) {
+    if (ca === cb) return true;
+    // Cédulas distintas: solo se sugieren si parecen un TYPO y el nombre coincide.
+    if (cedulaTypo(ca, cb) && nameSimilarity(a.fullName, b.fullName) >= 0.55) return true;
+    return false; // dos cédulas distintas y sin parecido = personas distintas
+  }
+  // Al menos una sin cédula: ≥2 tokens de nombre compartidos.
+  let shared = 0;
+  for (const t of ta) if (tb.has(t)) shared++;
+  return shared >= 2;
+}
+
 /**
  * Marca, SIN fusionar, los resultados que probablemente son la misma persona.
  *
- * Criterio conservador (preferimos NO agrupar antes que agrupar de más):
- *  - comparten ≥2 tokens de nombre (ej. "oriana" + "ustariz"), y
- *  - NO tienen ambas una cédula DISTINTA (si las dos traen cédula y difieren, la
- *    cédula manda: son personas distintas, no se sugieren como duplicado).
+ * Agrupa por *linkage contra un representante* (no union-find transitivo): cada
+ * registro se une al PRIMER líder (ancla más completa) con el que es `linkable`.
+ * Esto evita los "blobs" por nombre común — donde A se pega a B, B a C, C a D y
+ * termina mezclando homónimos distintos ("Cesar Pacheco" con "Eva Pacheco")—,
+ * porque un registro debe parecerse al ANCLA, no a un vecino cualquiera.
  *
- * Es una PISTA visual para la familia; el dato nunca se fusiona sin cédula.
+ * Criterios de `linkable` (conservador, es una PISTA visual; nunca fusiona):
+ *  - sin cédula (al menos uno): ≥2 tokens de nombre compartidos;
+ *  - dos cédulas iguales: misma persona;
+ *  - dos cédulas distintas: NO se agrupan, salvo que sean un *typo* de cédula
+ *    (distancia ≤1) y el nombre coincida — pista de "posible misma persona".
  */
 export function tagDuplicates(results: ConsolidatedPerson[]): SearchHit[] {
   const n = results.length;
-  const parent = Array.from({ length: n }, (_, i) => i);
-  const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i])));
-  const union = (a: number, b: number) => { parent[find(a)] = find(b); };
-
   const tokens = results.map(nameTokens);
-  for (let i = 0; i < n; i++) {
-    for (let j = i + 1; j < n; j++) {
-      const ci = results[i].cedula, cj = results[j].cedula;
-      if (ci && cj && ci !== cj) continue; // dos cédulas distintas = personas distintas
-      let shared = 0;
-      for (const t of tokens[i]) if (tokens[j].has(t)) shared++;
-      if (shared >= 2) union(i, j);
+
+  // Líderes primero los más "fuertes" (cédula > localizado > ficha completa), para
+  // que el grupo se forme alrededor de un ancla real y estable.
+  const order = [...results.keys()].sort((a, b) => strength(results[b]) - strength(results[a]));
+  const leaderOf = new Array<number>(n).fill(-1);
+  const leaders: number[] = [];
+  for (const i of order) {
+    let chosen = -1;
+    for (const L of leaders) {
+      if (linkable(results[i], results[L], tokens[i], tokens[L])) { chosen = L; break; }
     }
+    if (chosen === -1) { leaders.push(i); leaderOf[i] = i; }
+    else leaderOf[i] = chosen;
   }
 
   // Tamaño por grupo y numeración estable (1,2,3…) según orden de aparición.
   const size = new Map<number, number>();
-  for (let i = 0; i < n; i++) size.set(find(i), (size.get(find(i)) ?? 0) + 1);
+  for (let i = 0; i < n; i++) size.set(leaderOf[i], (size.get(leaderOf[i]) ?? 0) + 1);
   const groupNum = new Map<number, number>();
   let next = 1;
   return results.map((p, i) => {
-    const root = find(i);
+    const root = leaderOf[i];
     const count = size.get(root) ?? 1;
     let dupGroup: number | null = null;
     if (count > 1) {

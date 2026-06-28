@@ -4,8 +4,17 @@
  */
 import { Store } from '../src/db.ts';
 import { resolvePerson } from '../src/dedup.ts';
-import { searchByCedula, searchByName } from '../src/search.ts';
-import type { RawRecord } from '../src/types.ts';
+import { searchByCedula, searchByName, tagDuplicates } from '../src/search.ts';
+import { normalizeName } from '../src/normalize.ts';
+import type { RawRecord, ConsolidatedPerson } from '../src/types.ts';
+
+/** Persona consolidada mínima para probar tagDuplicates de forma directa. */
+function cp(fullName: string, cedula: string | null = null, extra: Partial<ConsolidatedPerson> = {}): ConsolidatedPerson {
+  return {
+    fullName, cedula, nameNormalized: normalizeName(fullName),
+    consolidatedStatus: 'sin_contacto', sources: [], ...extra,
+  } as unknown as ConsolidatedPerson;
+}
 
 let pass = 0, fail = 0;
 const check = (n: string, c: boolean) => { console.log(`${c ? '✅' : '❌'} ${n}`); c ? pass++ : fail++; };
@@ -90,6 +99,35 @@ feed('z.com', { sourceId: 'target', fullName: 'Mariangel Perez', cedula: 'V-29.9
 const needle = searchByName(store, 'mariangel perez').results;
 check('match completo sobrevive entre 850 ruidos de un token (no falso negativo)',
   needle.some((p) => p.fullName === 'Mariangel Perez'));
+
+// --- agrupado: NO encadenar homónimos distintos en un "blob" ---
+// Con union-find transitivo, A-B y B-C unían a A con C aunque A y C no se parezcan.
+// Con linkage contra representante, C debe parecerse al ANCLA, no a un vecino.
+const chain = tagDuplicates([
+  cp('Cesar Pacheco'),        // ancla
+  cp('Julio Cesar Pacheco'),  // comparte cesar+pacheco con el ancla → mismo grupo
+  cp('Eva Julio Pacheco'),    // comparte julio+pacheco con el del medio, pero solo pacheco con el ancla
+]);
+const aCesar = chain.find((p) => p.fullName === 'Cesar Pacheco')!;
+const aEva = chain.find((p) => p.fullName === 'Eva Julio Pacheco')!;
+check('agrupado: NO encadena homónimos (Cesar Pacheco ≠ grupo de Eva Julio Pacheco)',
+  aCesar.dupGroup == null || aCesar.dupGroup !== aEva.dupGroup);
+
+// --- agrupado: typo de cédula + nombre parecido → posible duplicado ---
+const typo = tagDuplicates([
+  cp('Veronica Bastardo', 'V30170686', { consolidatedStatus: 'localizado' } as any),
+  cp('Veronica Bastido', 'V30170626'), // cédula a distancia 1 + apellido con typo
+]);
+check('agrupado: typo de cédula + nombre parecido → mismo grupo (Bastardo/Bastido)',
+  typo[0].dupGroup != null && typo[0].dupGroup === typo[1].dupGroup);
+
+// --- agrupado: cédula casi-igual pero nombres distintos → NO agrupa ---
+const seq = tagDuplicates([
+  cp('Juan Perez', 'V12345678'),
+  cp('Maria Lopez', 'V12345679'), // cédula a distancia 1 pero otra persona
+]);
+check('agrupado: cédula casi-igual con nombres distintos NO se agrupa',
+  seq[0].dupGroup === null && seq[1].dupGroup === null);
 
 console.log(`\n${pass} OK, ${fail} fallidas`);
 process.exit(fail === 0 ? 0 : 1);
