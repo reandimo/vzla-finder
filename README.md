@@ -154,12 +154,6 @@ JSON con las fuentes integradas, su último cacheo y `totalRecords`.
 
 ---
 
-## 📦 Deploy
-
-Corre en hosting compartido **cPanel / CloudLinux** (Node.js Selector + cron) o en cualquier server con Node 22+ (`passenger-app.cjs` levanta el server en `process.env.PORT`). La base de datos con datos personales vive **fuera del docroot** y nunca se versiona.
-
----
-
 ## 🔒 Privacidad y ética
 
 Este es un **proyecto altruista, sin fines de lucro**. Solo reunimos en un mismo lugar lo que las plataformas ciudadanas **ya publican**, con enlace de vuelta a cada fuente. No vendemos, compartimos ni usamos los datos para nada que no sea ayudar a reunir a las personas con sus familias. Reglas que no se negocian:
