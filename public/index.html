@@ -156,6 +156,13 @@
   }
   .chip:hover { border-color: var(--accent); }
   .chip::after { content: "↗"; font-size: 11px; opacity: .7; }
+  .dup-badge {
+    display: inline-block; vertical-align: middle; margin-left: 8px;
+    font-size: 11px; font-weight: 600; line-height: 1.4;
+    padding: 1px 8px; border-radius: 999px; cursor: help;
+    color: #8a5a00; background: #fff4e0; border: 1px solid #f0d49a; white-space: nowrap;
+  }
+  .dup-badge::before { content: "⚠ "; }
 
   .empty {
     background: var(--card); border: 1px dashed var(--line); border-radius: 14px;
@@ -525,7 +532,9 @@
           <div class="identity">
             ${photo}
             <div class="idtext">
-              <p class="name">${esc(p.fullName)}</p>
+              <p class="name">${esc(p.fullName)}${p.dupCount > 1
+                ? ` <span class="dup-badge" title="Podría ser la misma persona que otros ${p.dupCount - 1} resultado${p.dupCount - 1 === 1 ? '' : 's'} de esta búsqueda (nombre muy parecido). No los unimos automáticamente sin cédula.">posible duplicado</span>`
+                : ''}</p>
               <p class="meta">${meta || '—'}</p>
               ${ref}
               ${safe && p.resolvedBy ? `<p class="resolved">Reportado a salvo por ${esc(p.resolvedBy)}.</p>` : ''}

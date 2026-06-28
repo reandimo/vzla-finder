@@ -57,6 +57,27 @@ const lim = searchByName(store, 'carlos marin', 1);
 check('respeta el límite (limit=1)', lim.results.length === 1);
 check('total refleja todas las coincidencias aunque se recorten', lim.total === 2);
 
+// --- etiqueta "posible duplicado": marca (sin fusionar) los que probablemente
+// son la misma persona; NO agrupa por compartir solo el primer nombre, ni dos
+// con cédulas distintas. ---
+feed('s1.com', { sourceId: 'o1', fullName: 'Oriana Ustariz', age: 25 });
+feed('s2.com', { sourceId: 'o2', fullName: 'ORIANA USTARIZ', age: 25 });
+feed('s3.com', { sourceId: 'o3', fullName: 'Oriana Andrea Ustariz Dinis', cedula: 'V-27.770.896', age: 25 });
+feed('s4.com', { sourceId: 'o4', fullName: 'Oriana Ramírez', age: 25 });
+const oriana = searchByName(store, 'oriana ustariz').results;
+const ust = oriana.filter((p) => /ustariz/i.test(p.fullName));
+const ram = oriana.find((p) => /ram[ií]rez/i.test(p.fullName));
+check('dup: agrupa las 3 "… Ustariz" (≥2 tokens compartidos)',
+  ust.length === 3 && ust.every((p) => p.dupCount === 3 && p.dupGroup === ust[0].dupGroup && p.dupGroup != null));
+check('dup: NO agrupa "Oriana Ramírez" (solo comparte el primer nombre)',
+  ram != null && ram.dupGroup === null && ram.dupCount === 1);
+
+feed('s1.com', { sourceId: 'm1', fullName: 'Marcos Test Lopez', cedula: 'V-1.000.001' });
+feed('s2.com', { sourceId: 'm2', fullName: 'Marcos Test Lopez', cedula: 'V-2.000.002' });
+const marcos = searchByName(store, 'marcos test lopez').results;
+check('dup: dos cédulas DISTINTAS no se marcan como duplicado',
+  marcos.length === 2 && marcos.every((p) => p.dupGroup === null));
+
 // --- regresión (falso negativo a escala): con MUCHÍSIMAS coincidencias de un
 // solo token, la persona que matchea TODOS los tokens debe sobrevivir al corte
 // de candidatos. Si no, una familia buscando "Nombre Apellido" no la encontraría
