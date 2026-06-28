@@ -113,6 +113,19 @@ const aEva = chain.find((p) => p.fullName === 'Eva Julio Pacheco')!;
 check('agrupado: NO encadena homónimos (Cesar Pacheco ≠ grupo de Eva Julio Pacheco)',
   aCesar.dupGroup == null || aCesar.dupGroup !== aEva.dupGroup);
 
+// --- agrupado: compartir 2 nombres COMUNES con apellido propio distinto → NO agrupa ---
+const comunes = tagDuplicates([
+  cp('Julio César Diaz'),
+  cp('Julio César Cruz'),
+  cp('Julio César Peña'),
+]);
+check('agrupado: "Julio César Diaz/Cruz/Peña" NO se agrupan (apellido propio distinto)',
+  new Set(comunes.map((p) => p.dupGroup ?? Symbol())).size === comunes.length);
+// pero el subconjunto SÍ: "Oriana Ustariz" ⊆ "Oriana Ustariz Dinis"
+const contiene = tagDuplicates([cp('Oriana Ustariz Dinis'), cp('Oriana Ustariz')]);
+check('agrupado: nombre contenido en otro más largo → mismo grupo',
+  contiene[0].dupGroup != null && contiene[0].dupGroup === contiene[1].dupGroup);
+
 // --- agrupado: typo de cédula + nombre parecido → posible duplicado ---
 const typo = tagDuplicates([
   cp('Veronica Bastardo', 'V30170686', { consolidatedStatus: 'localizado' } as any),

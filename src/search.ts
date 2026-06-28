@@ -82,10 +82,13 @@ function linkable(a: ConsolidatedPerson, b: ConsolidatedPerson, ta: Set<string>,
     if (cedulaTypo(ca, cb) && nameSimilarity(a.fullName, b.fullName) >= 0.55) return true;
     return false; // dos cédulas distintas y sin parecido = personas distintas
   }
-  // Al menos una sin cédula: ≥2 tokens de nombre compartidos.
+  // Al menos una sin cédula: el nombre más corto debe estar CONTENIDO en el más
+  // largo (≥2 tokens). Así "Oriana Ustariz" ⊆ "Oriana Andrea Ustariz Dinis" sí
+  // agrupan, pero "Julio César Diaz" y "Julio César Cruz" —que comparten los dos
+  // nombres comunes pero cada uno tiene su propio apellido— NO se mezclan.
   let shared = 0;
   for (const t of ta) if (tb.has(t)) shared++;
-  return shared >= 2;
+  return shared >= 2 && shared === Math.min(ta.size, tb.size);
 }
 
 /**
