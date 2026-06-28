@@ -74,7 +74,7 @@ El **cacheo es cortés**: requests condicionales (`ETag`/`Last-Modified`/hash) e
 > Las fuentes activas se scrapean en vivo periódicamente (según el intervalo de
 > cada fuente), con requests corteses y respeto del cacheo. Solo se integran
 > fuentes con datos **reales**: nada de datos sintéticos en producción.
-> ¿Conocés otra fuente? Sugerila desde el botón **“Sugerir otra fuente”** del landing, o abrí un issue.
+> ¿Conoces otra fuente? Sugiérela desde el botón **“Sugerir otra fuente”** del landing, o abre un issue.
 
 ---
 
@@ -89,7 +89,7 @@ npm run search -- --cedula "V-12.345.678"
 npm run search -- --name "carlos marin"
 ```
 
-> Usa `node:sqlite` (Node 22+). En Node 18/20, cambiá la import de `src/db.ts` por `better-sqlite3` (API casi idéntica).
+> Usa `node:sqlite` (Node 22+). En Node 18/20, cambia el import de `src/db.ts` por `better-sqlite3` (API casi idéntica).
 
 ---
 
@@ -106,9 +106,9 @@ npm run search -- --name "carlos marin"
 
 ## 🤝 Conectar una fuente real
 
-1. F12 → **Network → Fetch/XHR** en la plataforma, encontrá el request que devuelve el listado.
-2. Pegá la URL en `ENDPOINT` del adaptador y ajustá `parse()` a la forma real del JSON/HTML.
-3. Sumá el adaptador en `src/sources/index.ts`. Listo.
+1. F12 → **Network → Fetch/XHR** en la plataforma, encuentra el request que devuelve el listado.
+2. Pega la URL en `ENDPOINT` del adaptador y ajusta `parse()` a la forma real del JSON/HTML.
+3. Agrega el adaptador en `src/sources/index.ts`. Listo.
 
 ---
 
@@ -133,7 +133,7 @@ curl "https://busquedaunificadavzla.com/api/pfif?offset=0&limit=200"
 - **Sin PII:** NO incluye cédula ni datos de contacto — solo lo ya público (nombre, edad, ciudad/estado, foto, estado del caso) + `source_url` de la fuente original.
 - **Estado del caso** en `<pfif:note><pfif:status>`: `believed_alive` (localizado), `believed_missing` (sin contacto), `information_sought`.
 - **Atribución obligatoria** + opt-out: `opt-out@busquedaunificadavzla.com`.
-- Cacheado (`Cache-Control: max-age=120`). Por favor paginá con cortesía.
+- Cacheado (`Cache-Control: max-age=120`). Por favor pagina con cortesía.
 
 ### `GET /api/search` — búsqueda
 
@@ -162,7 +162,7 @@ Este es un **proyecto altruista, sin fines de lucro**. Solo reunimos en un mismo
 - **Re-hostear lo mínimo:** para el contacto, se enlaza a la ficha original.
 - **Nunca afirmar una coincidencia sin cédula:** se sugiere, no se decide.
 
-🚨 **¿Es una emergencia?** En Venezuela, llamá al **171** (gestión de riesgos / Protección Civil).
+🚨 **¿Es una emergencia?** En Venezuela, llama al **171** (gestión de riesgos / Protección Civil).
 
 ---
 
@@ -195,6 +195,6 @@ fixtures/         datos sintéticos (JSON + HTML)
 
 <div align="center">
 
-Hecho con ❤️ por **[Renan Díaz](https://github.com/reandimo)** · ¿Sumás una fuente o un fix? [Abrí un issue o PR](https://github.com/reandimo/vzla-finder/issues) · Licencia [MIT](LICENSE)
+Hecho con ❤️ por **[Renan Díaz](https://github.com/reandimo)** · ¿Aportas una fuente o un arreglo? [Abre un issue o PR](https://github.com/reandimo/vzla-finder/issues) · Licencia [MIT](LICENSE)
 
 </div>
