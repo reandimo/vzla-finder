@@ -8,6 +8,7 @@ import { EstoyAquiAdapter } from './estoyaqui.ts';
 import { DesaparecidosVenezuelaAdapter } from './desaparecidosvenezuela.ts';
 import { AfectadosAdapter } from './afectados.ts';
 import { VenezuelaReportaAdapter } from './venezuelareporta.ts';
+import { VzlanosAdapter } from './vzlanos.ts';
 
 // Solo fuentes con scraping REAL: no inyectamos datos sintéticos en producción.
 //
@@ -17,8 +18,9 @@ import { VenezuelaReportaAdapter } from './venezuelareporta.ts';
 // próxima candidata a sumar.
 export const adapters: SourceAdapter[] = [
   new VenezuelaTeBuscaAdapter(),       // React Router /_root.data (turbo-stream), trae cédula
-  new EstoyAquiAdapter(),              // API JSON /api/encontradas, trae cédula
+  new EstoyAquiAdapter(),              // API JSON /api/datos (buscadas + encontradas), trae cédula
   new DesaparecidosVenezuelaAdapter(), // API JSON /api/personas (sin cédula), trae lat/lng
   new AfectadosAdapter(),              // HTML/SSR multipágina (cédula enmascarada = pista)
   new VenezuelaReportaAdapter(),       // HTML/SSR paginado (sin cédula), UUID por ficha, incremental
+  new VzlanosAdapter(),                // API JSON /api/personas paginada (cédula enmascarada = sin merge)
 ];

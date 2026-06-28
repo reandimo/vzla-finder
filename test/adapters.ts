@@ -9,6 +9,7 @@ import { EstoyAquiAdapter } from '../src/sources/estoyaqui.ts';
 import { DesaparecidosVenezuelaAdapter } from '../src/sources/desaparecidosvenezuela.ts';
 import { AfectadosAdapter } from '../src/sources/afectados.ts';
 import { VenezuelaReportaAdapter } from '../src/sources/venezuelareporta.ts';
+import { VzlanosAdapter } from '../src/sources/vzlanos.ts';
 
 let pass = 0, fail = 0;
 const check = (n: string, c: boolean) => { console.log(`${c ? '✅' : '❌'} ${n}`); c ? pass++ : fail++; };
@@ -37,22 +38,33 @@ check('desap: extrae nombre y cédula', desap[0].fullName === 'Jose Gabriel Pere
 check('desap: data-estatus="localizado" → localizado', desap.some((r) => r.status === 'localizado'));
 check('desap: ficha sin cédula → cedula undefined', desap.some((r) => r.cedula === undefined));
 
-// --- estoyaqui: API /api/encontradas (forma real) ---
-const sample = JSON.stringify({
-  total: 2,
-  items: [
+// --- estoyaqui: API /api/datos (buscadas + encontradas; excluye fallecidos) ---
+const eaqSample = JSON.stringify([{
+  totales: { personas_buscadas: 2, personas_encontradas: 3 },
+  personas_buscadas: [
+    { id: 5, nombre_completo: 'Carla Ríos', cedula: '12345678', edad: 30,
+      ultima_ubicacion: 'Caribe, La Guaira', estado: 'buscando', fecha_reporte: '2026-06-26T10:00:00Z' },
+    { id: 6, nombre_completo: '', cedula: null, edad: null, estado: 'buscando' },
+  ],
+  personas_encontradas: [
     { id: 23, nombre_completo: 'Burlis Sno', cedula: '10481980', edad_aproximada: 53,
       descripcion_fisica: 'Atendido en Traumatología', ubicacion_actual: 'HAFPL2, La Guaira',
       estado_salud: 'herido_leve', fecha_reporte: '2026-06-25T20:31:15Z' },
-    { id: 24, nombre_completo: '', cedula: null, edad_aproximada: null, estado_salud: 'estable' },
+    { id: 24, nombre_completo: 'Persona Sin Vida', cedula: null, edad_aproximada: 40,
+      estado_salud: 'fallecido', ubicacion_actual: 'Morgue' },
+    { id: 25, nombre_completo: '', cedula: null, estado_salud: 'sano' },
   ],
-});
-const eaq = new EstoyAquiAdapter().parse(sample);
-check('estoyaqui: lee el array items', eaq.length === 2);
-check('estoyaqui: encontrados → status localizado', eaq[0].status === 'localizado');
-check('estoyaqui: mapea edad_aproximada → age', eaq[0].age === 53);
-check('estoyaqui: mapea cédula y ubicación como referencia',
-  eaq[0].cedula === '10481980' && (eaq[0].reference ?? '').includes('HAFPL2'));
+}]);
+const eaq = new EstoyAquiAdapter().parse(eaqSample);
+const eaqById = (id: string) => eaq.find((r) => r.sourceId === id);
+check('estoyaqui: ingiere buscadas + encontradas válidas (omite vacíos)', eaq.length === 2);
+check('estoyaqui: buscada → sin_contacto, sourceId b-<id>, con cédula',
+  eaqById('b-5')?.status === 'sin_contacto' && eaqById('b-5')?.cedula === '12345678');
+check('estoyaqui: encontrada → localizado, id numérico, cédula y edad_aproximada',
+  eaqById('23')?.status === 'localizado' && eaqById('23')?.cedula === '10481980' && eaqById('23')?.age === 53);
+check('estoyaqui: ubicación → referencia', (eaqById('23')?.reference ?? '').includes('HAFPL2'));
+check('estoyaqui: FALLECIDO se excluye (nunca "a salvo")',
+  !eaq.some((r) => /Sin Vida/.test(r.fullName)));
 
 // --- desaparecidosvenezuela: API /api/personas (sin cédula, estado/actualizaciones) ---
 const dvz = new DesaparecidosVenezuelaAdapter().parse(read('desaparecidosvenezuela.json'));
@@ -112,6 +124,30 @@ check('vr: "Se busca" → sin_contacto', vr[0].status === 'sin_contacto');
 check('vr: "A salvo" → localizado', vr[1].status === 'localizado');
 check('vr: sin cédula', vr.every((r) => r.cedula === undefined));
 check('vr: foto Supabase absoluta', (vr[0].photoUrl ?? '').startsWith('https://wlvcfbuxkdrxhxqlwwmo.supabase.co'));
+
+// --- vzlanos: API /api/personas paginada, sin cédula utilizable ---
+const vzlSample = JSON.stringify({
+  items: [
+    { id: 88, nombre: 'Víctor Jiménez', edad: 60, ubicacion: 'Cerca de Bellevue',
+      fecha: '2026-06-28T13:34:36.787Z', descripcion: null, contacto: '04125527222',
+      foto: '/api/reports/88/photo', estado: 'sin-contacto' },
+    { id: 82, nombre: 'Verónica Seabra', edad: null, ubicacion: null, descripcion: 'Estoy bien',
+      foto: null, estado: 'localizado', localizadoPor: 'Auto-reporte' },
+    { id: 99, nombre: '', estado: 'sin-contacto' },
+  ],
+  total: 3, page: 1, pageSize: 100, totalPages: 1,
+});
+const vzl = new VzlanosAdapter().parse(vzlSample);
+check('vzlanos: ingiere items con nombre (omite vacíos)', vzl.length === 2);
+check('vzlanos: "sin-contacto" → sin_contacto', vzl[0].status === 'sin_contacto');
+check('vzlanos: "localizado" → localizado', vzl[1].status === 'localizado');
+check('vzlanos: foto relativa → absoluta vzlanos.com',
+  (vzl[0].photoUrl ?? '') === 'https://vzlanos.com/api/reports/88/photo');
+check('vzlanos: no expone cédula (enmascarada en la fuente)', vzl.every((r) => r.cedula === undefined));
+check('vzlanos: sourceId = id, sourceUrl a /desaparecidos',
+  vzl[0].sourceId === '88' && vzl[0].sourceUrl === 'https://vzlanos.com/desaparecidos');
+check('vzlanos: edad numérica, null → undefined',
+  vzl[0].age === 60 && vzl[1].age === undefined);
 
 console.log(`\n${pass} OK, ${fail} fallidas`);
 process.exit(fail === 0 ? 0 : 1);

@@ -1,27 +1,53 @@
 [
   {
-    "id": "eaq-77",
-    "nombre_completo": "Luis Alberto Contreras",
-    "cedula": "V-18.992.103",
-    "edad": 37,
-    "sexo": "M",
-    "estado": "Aragua",
-    "municipio": "Maracay",
-    "descripcion": "Visto cerca del río el día del sismo, camisa azul",
-    "foto_url": "https://estoyaquive.up.railway.app/img/eaq-77.jpg",
-    "estatus": "buscando",
-    "visto_por_ultima_vez": "2026-06-24T17:30:00-04:00"
-  },
-  {
-    "id": "eaq-78",
-    "nombre_completo": "Ana Lucía Méndez",
-    "cedula": "V-25.110.488",
-    "edad": 22,
-    "sexo": "F",
-    "estado": "Carabobo",
-    "municipio": "Valencia",
-    "descripcion": "Reportada a salvo en un refugio de Valencia",
-    "estatus": "encontrada",
-    "visto_por_ultima_vez": "2026-06-25T09:00:00-04:00"
+    "totales": { "personas_buscadas": 1, "personas_encontradas": 2 },
+    "personas_buscadas": [
+      {
+        "id": 77,
+        "nombre_completo": "Luis Alberto Contreras",
+        "cedula": "V-18.992.103",
+        "edad": 37,
+        "descripcion": "Visto cerca del río el día del sismo, camisa azul",
+        "ultima_ubicacion": "Maracay, Aragua",
+        "reportado_por": "Familiar",
+        "contacto_reportante": "0414-0000000",
+        "estado": "buscando",
+        "foto_filename": null,
+        "fecha_reporte": "2026-06-24T17:30:00-04:00"
+      }
+    ],
+    "personas_encontradas": [
+      {
+        "id": 78,
+        "nombre_completo": "Ana Lucía Méndez",
+        "cedula": "V-25.110.488",
+        "edad_aproximada": 22,
+        "descripcion_fisica": "Reportada a salvo en un refugio de Valencia",
+        "ubicacion_actual": "Refugio, Valencia, Carabobo",
+        "estado_salud": "sano",
+        "reportado_por": "Voluntario",
+        "contacto_reportante": "instagram",
+        "foto_filename": null,
+        "fecha_reporte": "2026-06-25T09:00:00-04:00"
+      },
+      {
+        "id": 79,
+        "nombre_completo": "Persona Fallecida Ejemplo",
+        "cedula": null,
+        "edad_aproximada": 60,
+        "descripcion_fisica": "No debe marcarse como a salvo",
+        "ubicacion_actual": "Morgue",
+        "estado_salud": "fallecido",
+        "reportado_por": "Hospital",
+        "contacto_reportante": "",
+        "foto_filename": null,
+        "fecha_reporte": "2026-06-25T11:00:00-04:00"
+      }
+    ],
+    "matches": [],
+    "posts": [],
+    "mascotas_buscadas": [],
+    "mascotas_encontradas": [],
+    "mascota_matches": []
   }
 ]

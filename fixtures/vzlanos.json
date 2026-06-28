@@ -1,0 +1,28 @@
+[
+  {
+    "id": 1,
+    "nombre": "María Ejemplo Vzlanos",
+    "edad": 35,
+    "ubicacion": "Caribe, La Guaira",
+    "fecha": "2026-06-28T12:00:00.000Z",
+    "descripcion": "Vista por última vez cerca del edificio Green 7",
+    "contacto": "0000-0000000",
+    "foto": "/api/reports/1/photo",
+    "estado": "sin-contacto",
+    "localizadoPor": null,
+    "createdAt": 1782648549992
+  },
+  {
+    "id": 2,
+    "nombre": "José Ejemplo Hallado",
+    "edad": null,
+    "ubicacion": "Camuri Grande",
+    "fecha": "2026-06-28T13:00:00.000Z",
+    "descripcion": "Reportado a salvo por un vecino",
+    "contacto": null,
+    "foto": null,
+    "estado": "localizado",
+    "localizadoPor": "Auto-reporte",
+    "createdAt": 1782652149992
+  }
+]
