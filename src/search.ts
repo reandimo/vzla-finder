@@ -5,7 +5,7 @@
  */
 import { Store } from './db.ts';
 import { consolidate } from './reconcile.ts';
-import { normalizeCedula, normalizeName, nameSimilarity, levenshtein } from './normalize.ts';
+import { normalizeCedula, normalizeName, nameSimilarity } from './normalize.ts';
 import type { ConsolidatedPerson } from './types.ts';
 
 /** Resultado con la marca (no destructiva) de "posible duplicado". */
@@ -65,23 +65,14 @@ function strength(p: ConsolidatedPerson): number {
   return s;
 }
 
-/** ¿Dos cédulas son un typo de la misma? Mismo prefijo y dígitos a distancia ≤1. */
-function cedulaTypo(ca: string, cb: string): boolean {
-  if (ca[0] !== cb[0]) return false;            // V/E/J/G distinto = nunca el mismo
-  const da = ca.slice(1), db = cb.slice(1);
-  if (da === db) return false;
-  return levenshtein(da, db) <= 1;              // 1 dígito cambiado / un 0 de más
-}
-
-/** ¿`a` y `b` son candidatos a "posible duplicado"? Predicado, NO fusión. */
+/** ¿`a` y `b` son candidatos a "posible duplicado"? Predicado conservador, NO fusión. */
 function linkable(a: ConsolidatedPerson, b: ConsolidatedPerson, ta: Set<string>, tb: Set<string>): boolean {
   const ca = a.cedula, cb = b.cedula;
-  if (ca && cb) {
-    if (ca === cb) return true;
-    // Cédulas distintas: solo se sugieren si parecen un TYPO y el nombre coincide.
-    if (cedulaTypo(ca, cb) && nameSimilarity(a.fullName, b.fullName) >= 0.55) return true;
-    return false; // dos cédulas distintas y sin parecido = personas distintas
-  }
+  // Dos cédulas: solo se agrupan si son IGUALES. Cédulas "casi iguales" (typo) NO
+  // se deciden acá: un typo de cédula + typo de nombre puede ser otra persona, y
+  // distinguirlo es pesar varios campos (nombre/edad/zona/referencia) a la vez —
+  // eso lo hace la IA con contexto, no una regla determinista que cuenta dígitos.
+  if (ca && cb) return ca === cb;
   // Al menos una sin cédula: el nombre más corto debe estar CONTENIDO en el más
   // largo (≥2 tokens). Así "Oriana Ustariz" ⊆ "Oriana Andrea Ustariz Dinis" sí
   // agrupan, pero "Julio César Diaz" y "Julio César Cruz" —que comparten los dos

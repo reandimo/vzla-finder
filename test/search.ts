@@ -126,21 +126,15 @@ const contiene = tagDuplicates([cp('Oriana Ustariz Dinis'), cp('Oriana Ustariz')
 check('agrupado: nombre contenido en otro más largo → mismo grupo',
   contiene[0].dupGroup != null && contiene[0].dupGroup === contiene[1].dupGroup);
 
-// --- agrupado: typo de cédula + nombre parecido → posible duplicado ---
-const typo = tagDuplicates([
+// --- agrupado: dos cédulas DISTINTAS no se agrupan deterministamente, ni siquiera
+// si son "casi iguales" + nombre parecido. Un typo de cédula + typo de nombre puede
+// ser OTRA persona; ese juicio multicampo lo hace la IA con contexto, no esta regla. ---
+const casiIgual = tagDuplicates([
   cp('Veronica Bastardo', 'V30170686', { consolidatedStatus: 'localizado' } as any),
   cp('Veronica Bastido', 'V30170626'), // cédula a distancia 1 + apellido con typo
 ]);
-check('agrupado: typo de cédula + nombre parecido → mismo grupo (Bastardo/Bastido)',
-  typo[0].dupGroup != null && typo[0].dupGroup === typo[1].dupGroup);
-
-// --- agrupado: cédula casi-igual pero nombres distintos → NO agrupa ---
-const seq = tagDuplicates([
-  cp('Juan Perez', 'V12345678'),
-  cp('Maria Lopez', 'V12345679'), // cédula a distancia 1 pero otra persona
-]);
-check('agrupado: cédula casi-igual con nombres distintos NO se agrupa',
-  seq[0].dupGroup === null && seq[1].dupGroup === null);
+check('agrupado: cédula+nombre "casi iguales" NO se agrupan deterministamente (es juicio de la IA)',
+  casiIgual[0].dupGroup === null && casiIgual[1].dupGroup === null);
 
 console.log(`\n${pass} OK, ${fail} fallidas`);
 process.exit(fail === 0 ? 0 : 1);
