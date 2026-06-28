@@ -217,6 +217,8 @@
   .pending-list .source-row .when { color: #cf142b; }
   .api-note { background: #eef6f6; border: 1px solid #cfe3e3; border-radius: 12px; padding: 12px 14px; margin: 16px 0 0; font-size: 13px; color: var(--ink); }
   .api-note b { color: var(--accent); }
+  .api-note code { background: #dcebeb; color: #0c5c5c; padding: 1px 6px; border-radius: 5px; font-size: 12px; word-break: break-all; }
+  .api-note a { color: var(--accent); font-weight: 600; }
 
   .dedup { margin-top: 14px; font-size: 13px; color: var(--muted); }
   .dedup summary { cursor: pointer; color: var(--accent); font-weight: 600; list-style: revert; }
@@ -338,9 +340,11 @@
     <p class="api-note">
       <b>¿Desarrollas una de estas plataformas?</b> Si publicas un <b>endpoint público</b>
       de consulta, podemos unificar tus reportes automáticamente y ayudar a que más
-      familias se reencuentren — te lo agradecemos de corazón. Y vamos en la misma
-      dirección: <b>nosotros también vamos a ofrecer un endpoint de consulta pública</b>,
-      para que cualquier plataforma pueda cruzar datos con la nuestra.
+      familias se reencuentren — te lo agradecemos de corazón. Y predicamos con el ejemplo:
+      <b>ya publicamos nuestro endpoint público</b> en formato estándar
+      <a href="/api/pfif?limit=200" target="_blank" rel="noopener noreferrer">PFIF&nbsp;1.4</a>
+      —<code>GET /api/pfif?offset=0&amp;limit=200</code>, paginado, cacheado y <b>sin datos
+      personales</b>—. Cualquier plataforma puede federar con nuestra data.
     </p>
     <details class="dedup">
       <summary>¿Cómo unimos los registros de varias plataformas?</summary>

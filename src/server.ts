@@ -146,7 +146,12 @@ function handlePfif(url: URL, res: any) {
     const persons = store.listPersons(limit, offset).map((p) => consolidate(store, p));
     return toPfif(persons, { offset, limit, total });
   });
-  res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8' });
+  res.writeHead(200, {
+    'Content-Type': 'application/xml; charset=utf-8',
+    // La data cambia como mucho cada hora (cron). Dejar que Cloudflare/proxies
+    // cacheen el feed en el borde protege el origin de paginados masivos.
+    'Cache-Control': 'public, max-age=120, stale-while-revalidate=600',
+  });
   res.end(xml);
 }
 
