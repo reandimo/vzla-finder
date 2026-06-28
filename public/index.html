@@ -207,9 +207,14 @@
   }
   .source-row .live { width: 8px; height: 8px; border-radius: 50%; background: var(--safe); flex: none; }
   .source-row .live.off { background: var(--line); }
+  .source-row .live.red { background: #cf142b; }
   .source-row a { color: var(--ink); font-weight: 600; text-decoration: none; }
   .source-row a:hover { color: var(--accent); }
   .source-row .when { margin-left: auto; font-size: 12px; color: var(--muted); }
+  .pending-note { margin: 16px 2px 8px; font-size: 13px; color: var(--waiting); }
+  .pending-note b { color: var(--waiting); }
+  .pending-list .source-row { border-style: dashed; }
+  .pending-list .source-row .when { color: #cf142b; }
 
   .dedup { margin-top: 14px; font-size: 13px; color: var(--muted); }
   .dedup summary { cursor: pointer; color: var(--accent); font-weight: 600; list-style: revert; }
@@ -315,6 +320,18 @@
     </div>
     <ul class="source-list" id="source-list">
       <li class="source-row"><span class="live off"></span><span>Cargando fuentes…</span></li>
+    </ul>
+    <p class="pending-note">
+      Conocemos estas plataformas pero <b>todavía no las integramos</b> (no se cachean aún):
+      búscalas también directo.
+    </p>
+    <ul class="source-list pending-list">
+      <li class="source-row"><span class="live red" title="aún no integrada"></span>
+        <a href="https://redayudavenezuela.com/" target="_blank" rel="noopener noreferrer">redayudavenezuela.com</a>
+        <span class="when">sin cachear</span></li>
+      <li class="source-row"><span class="live red" title="aún no integrada"></span>
+        <a href="https://desaparecidosterremotovenezuela.com/" target="_blank" rel="noopener noreferrer">desaparecidosterremotovenezuela.com</a>
+        <span class="when">sin cachear</span></li>
     </ul>
     <details class="dedup">
       <summary>¿Cómo unimos los registros de varias plataformas?</summary>
