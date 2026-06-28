@@ -44,19 +44,32 @@ flowchart LR
     A[Plataformas ciudadanas] -->|adaptador por fuente| B(Ingesta)
     B --> C{Deduplicación}
     C -->|cédula = match exacto| D[(Persona única<br/>SQLite)]
-    C -->|sin cédula = sugerencia| D
+    C -->|sin cédula = no fusiona| D
     D --> E[Reconciliación de estado<br/>la buena noticia gana]
     E --> F[API de búsqueda + cache]
-    F --> G[🌐 Buscador web]
+    F --> H[Agrupación visual<br/>posible duplicado]
+    H --> G[🌐 Buscador web]
 ```
 
 1. **Ingesta** — un *adaptador* por plataforma trae los registros públicos (JSON o HTML).
 2. **Normaliza** a un modelo común estilo PFIF (persona + procedencia + notas de estado).
-3. **Deduplica en capas** — por **cédula** hace merge seguro entre plataformas; **sin** cédula, propone una coincidencia para revisión humana (**nunca** fusiona solo).
+3. **Deduplica en capas** — por **cédula** hace merge seguro entre plataformas; **sin** cédula **no fusiona** (sería arriesgado en un buscador de desaparecidos): lo deja como registro aparte.
 4. **Reconcilia el estado** — *localizado* de cualquier fuente consolida a “a salvo”, guardando quién y cuándo lo reportó.
 5. **Sirve la búsqueda** — por cédula o nombre, con cache y enlaces de vuelta a cada fuente.
+6. **Agrupa posibles duplicados a la vista** — en la búsqueda por nombre, los registros con nombre muy parecido (y sin cédula que los confirme) se marcan como *posible duplicado* y se colapsan bajo un **representante** (cédula > localizado > ficha más completa > más reciente), con el resto a un clic. Es una **pista visual no destructiva**: el dato nunca se fusiona. Ver [docs/Deduplicacion-y-agrupacion.md](docs/Deduplicacion-y-agrupacion.md).
 
 El **cacheo es cortés**: requests condicionales (`ETag`/`Last-Modified`/hash) evitan re-descargar lo que no cambió, y una fuente caída nunca frena a las demás.
+
+---
+
+## 📚 Documentación
+
+Wiki del proyecto en [`docs/`](docs/Home.md):
+
+- [Arquitectura](docs/Arquitectura.md) — flujo completo y módulos.
+- [Deduplicación y agrupación](docs/Deduplicacion-y-agrupacion.md) — cédula, por qué no fusionamos sin cédula, y la etiqueta "posible duplicado".
+- [Fuentes](docs/Fuentes.md) — plataformas integradas y cómo sumar un adaptador.
+- [API pública](docs/API-publica.md) — feed PFIF 1.4 y endpoints de búsqueda.
 
 ---
 

@@ -294,6 +294,11 @@
   .gracias b { color: var(--waiting); }
   .colofon { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
   .colofon a { font-weight: 600; }
+  .changelog { margin-top: 14px; font-size: 13px; color: var(--muted); }
+  .changelog summary { cursor: pointer; color: var(--accent); font-weight: 600; list-style: revert; }
+  .changelog summary:hover { text-decoration: underline; }
+  .changelog ul { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 7px; }
+  .changelog b { color: var(--ink); }
   .amor { margin-top: 12px; text-align: center; font-weight: 600; color: var(--ink); }
 
   @media (prefers-reduced-motion: no-preference) {
@@ -377,6 +382,7 @@
       <ul>
         <li><b>Por cédula = misma persona.</b> Si dos reportes comparten la cédula, se fusionan (coincidencia exacta). Las cédulas <b>V-</b> y <b>E-</b> nunca se confunden entre sí.</li>
         <li><b>Sin cédula, no se fusiona solo.</b> Se trata como una <i>posible</i> coincidencia para revisión; nunca decidimos por ti que dos personas son la misma.</li>
+        <li><b>Posibles duplicados, agrupados a la vista.</b> Cuando varios reportes tienen un nombre muy parecido y no hay cédula que lo confirme, los marcamos como <i>posible duplicado</i> y los agrupamos bajo una tarjeta —mostrando la ficha más completa (con cédula, ya localizada o con más datos)—, para que no revises cinco tarjetas casi iguales. Despliegas el resto con un clic: <b>nunca ocultamos un registro del todo</b>.</li>
         <li><b>La buena noticia gana.</b> Si cualquier plataforma reporta a alguien como <i>localizado</i>, ese es el estado que ves —con quién lo reportó—.</li>
       </ul>
     </details>
@@ -410,6 +416,15 @@
       por los demás: este buscador solo existe gracias a ustedes. Cada persona que
       vuelve a casa es obra de su trabajo. Fuerza, Venezuela. 🇻🇪
     </p>
+    <details class="changelog">
+      <summary>📝 Mejoras recientes</summary>
+      <ul>
+        <li><b>28 jun 2026</b> — Agrupamos los <i>posibles duplicados</i> por nombre en una sola tarjeta (con la ficha más completa al frente y el resto a un clic), para que la búsqueda sea más clara.</li>
+        <li><b>28 jun 2026</b> — Nuevas fuentes: <b>vzlanos.com</b>, y ahora también traemos las personas <i>buscadas</i> de estoyaquive (antes solo las encontradas).</li>
+        <li><b>27 jun 2026</b> — Abrimos un <b>endpoint público</b> (PFIF 1.4) para que otras plataformas federen con nuestra data, <b>sin datos personales</b>.</li>
+        <li><b>27 jun 2026</b> — La búsqueda por nombre muestra más resultados y los ordena mejor; sumamos filtros por estado.</li>
+      </ul>
+    </details>
     <div class="colofon">
       <p>
         ¿Un error o una fuente nueva? Escribe a
