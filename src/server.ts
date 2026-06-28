@@ -15,6 +15,8 @@ import { fileURLToPath } from 'node:url';
 import { Store } from './db.ts';
 import { searchByCedula, searchByName } from './search.ts';
 import { QueryCache } from './cache.ts';
+import { consolidate } from './reconcile.ts';
+import { toPfif } from './pfif.ts';
 import { adapters } from './sources/index.ts';
 import { notifySuggestion } from './notify.ts';
 import type { ConsolidatedPerson } from './types.ts';
@@ -67,6 +69,9 @@ const server = createServer(async (req, res) => {
     }
     if (url.pathname === '/api/sources' && req.method === 'GET') {
       return handleSources(res);
+    }
+    if (url.pathname === '/api/pfif' && req.method === 'GET') {
+      return handlePfif(url, res);
     }
     if (url.pathname === '/api/suggest-source' && req.method === 'POST') {
       return handleSuggestSource(req, res);
@@ -126,6 +131,23 @@ function handleSources(res: any) {
     turnstileSiteKey: TURNSTILE_SITEKEY || null,
     sources,
   }));
+}
+
+/**
+ * Feed público PFIF 1.4 de nuestra data consolidada (federación abierta).
+ *   GET /api/pfif?offset=0&limit=200
+ * Sin PII (no incluye cédula). Cacheado por página para absorber tráfico.
+ */
+function handlePfif(url: URL, res: any) {
+  const limit = Math.min(Math.max(Math.trunc(Number(url.searchParams.get('limit')) || 200), 1), 500);
+  const offset = Math.max(Math.trunc(Number(url.searchParams.get('offset')) || 0), 0);
+  const xml = cache.wrap(`pfif:${offset}:${limit}`, () => {
+    const total = store.countPersons();
+    const persons = store.listPersons(limit, offset).map((p) => consolidate(store, p));
+    return toPfif(persons, { offset, limit, total });
+  });
+  res.writeHead(200, { 'Content-Type': 'application/xml; charset=utf-8' });
+  res.end(xml);
 }
 
 /**

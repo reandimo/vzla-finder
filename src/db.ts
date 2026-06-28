@@ -243,6 +243,14 @@ export class Store {
     return (this.db.prepare('SELECT COUNT(*) AS n FROM persons').get() as any).n;
   }
 
+  /** Página estable de personas (para el feed público PFIF). Orden determinista. */
+  listPersons(limit: number, offset: number): PersonRecord[] {
+    const rows = this.db
+      .prepare('SELECT * FROM persons ORDER BY created_at, person_id LIMIT ? OFFSET ?')
+      .all(limit, offset);
+    return (rows as any[]).map(rowToPerson);
+  }
+
   // --- sugerencias de fuentes ---
   addSourceSuggestion(s: { name: string | null; url: string; note: string | null; createdAt: string }) {
     this.db
