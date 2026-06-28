@@ -12,6 +12,18 @@ import type {
   Snapshot,
 } from './types.ts';
 
+/** Veredicto de desempate por IA sobre un par de posibles duplicados (sin cédula). */
+export interface AiVerdict {
+  personIdA: string;
+  personIdB: string;
+  verdict: 'same' | 'different' | 'unsure';
+  confidence: number; // 0..1
+  reason: string | null;
+  model: string;
+  pairHash: string;
+  createdAt: string;
+}
+
 export class Store {
   private db: DatabaseSync;
 
@@ -94,6 +106,25 @@ export class Store {
         note       TEXT,
         created_at TEXT NOT NULL
       );
+
+      -- Veredictos del desempate por IA sobre posibles duplicados SIN cédula.
+      -- NUNCA fusiona: solo es una pista de confianza, auditable y reversible
+      -- (ver scripts/ai-dedup.ts). El par se guarda ordenado (a < b) para que
+      -- (a,b) y (b,a) sean la misma fila. pair_hash detecta si los datos de
+      -- entrada cambiaron desde el último veredicto (para no re-pagar tokens).
+      CREATE TABLE IF NOT EXISTS ai_match_verdicts (
+        person_id_a TEXT NOT NULL,
+        person_id_b TEXT NOT NULL,
+        verdict     TEXT NOT NULL,   -- 'same' | 'different' | 'unsure'
+        confidence  REAL NOT NULL,   -- 0..1
+        reason      TEXT,
+        model       TEXT NOT NULL,   -- p. ej. 'claude-haiku-4-5' o 'dry-run'
+        pair_hash   TEXT NOT NULL,
+        created_at  TEXT NOT NULL,
+        PRIMARY KEY (person_id_a, person_id_b)
+      );
+      CREATE INDEX IF NOT EXISTS idx_verdicts_a ON ai_match_verdicts(person_id_a);
+      CREATE INDEX IF NOT EXISTS idx_verdicts_b ON ai_match_verdicts(person_id_b);
     `);
   }
 
@@ -204,6 +235,40 @@ export class Store {
           (person_id_a, person_id_b, score, reason, created_at) VALUES (?,?,?,?,?)`,
       )
       .run(s.personIdA, s.personIdB, s.score, s.reason, s.createdAt);
+  }
+
+  // --- veredictos de IA (posibles duplicados sin cédula) ---
+  upsertVerdict(v: AiVerdict) {
+    const [a, b] = v.personIdA < v.personIdB
+      ? [v.personIdA, v.personIdB] : [v.personIdB, v.personIdA];
+    this.db
+      .prepare(
+        `INSERT INTO ai_match_verdicts
+          (person_id_a, person_id_b, verdict, confidence, reason, model, pair_hash, created_at)
+         VALUES (?,?,?,?,?,?,?,?)
+         ON CONFLICT(person_id_a, person_id_b) DO UPDATE SET
+           verdict=excluded.verdict, confidence=excluded.confidence,
+           reason=excluded.reason, model=excluded.model,
+           pair_hash=excluded.pair_hash, created_at=excluded.created_at`,
+      )
+      .run(a, b, v.verdict, v.confidence, v.reason, v.model, v.pairHash, v.createdAt);
+  }
+
+  /** Veredicto previo de un par (en cualquier orden), o null si no se juzgó. */
+  getVerdict(personIdA: string, personIdB: string): AiVerdict | null {
+    const [a, b] = personIdA < personIdB ? [personIdA, personIdB] : [personIdB, personIdA];
+    const r = this.db
+      .prepare('SELECT * FROM ai_match_verdicts WHERE person_id_a=? AND person_id_b=?')
+      .get(a, b) as any;
+    return r ? rowToVerdict(r) : null;
+  }
+
+  /** Todos los veredictos que tocan a una persona (para que el front agrupe/rankee). */
+  verdictsForPerson(personId: string): AiVerdict[] {
+    const rows = this.db
+      .prepare('SELECT * FROM ai_match_verdicts WHERE person_id_a=? OR person_id_b=?')
+      .all(personId, personId);
+    return (rows as any[]).map(rowToVerdict);
   }
 
   // --- search ---
@@ -321,5 +386,12 @@ function rowToNote(r: any): NoteRecord {
     noteId: r.note_id, personId: r.person_id, sourceDomain: r.source_domain,
     status: r.status, noteText: r.note_text, sourceTimestamp: r.source_timestamp,
     ingestedAt: r.ingested_at,
+  };
+}
+function rowToVerdict(r: any): AiVerdict {
+  return {
+    personIdA: r.person_id_a, personIdB: r.person_id_b, verdict: r.verdict,
+    confidence: r.confidence, reason: r.reason, model: r.model,
+    pairHash: r.pair_hash, createdAt: r.created_at,
   };
 }
