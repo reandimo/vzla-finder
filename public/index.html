@@ -175,6 +175,7 @@
   }
   .dup-toggle:hover { border-color: var(--accent); color: var(--accent); }
   .dup-members { display: grid; gap: 12px; }
+  .dup-members[hidden] { display: none; } /* el display:grid de arriba pisa el [hidden] del UA */
 
   .empty {
     background: var(--card); border: 1px dashed var(--line); border-radius: 14px;
