@@ -86,6 +86,7 @@ Wiki del proyecto en [`docs/`](docs/Home.md):
 | afectadosporelterremotovenezuela.com | HTML/SSR (desaparecidos · hospitalizados · rescatados) | 🔸 enmascarada (pista, no merge) | 🟢 **scraping en vivo** |
 | venezuelareporta.org | HTML/SSR `/buscar` paginado (UUID por ficha) | — | 🟢 **scraping en vivo** (incremental) |
 | vzlanos.com | API `/api/personas` paginada (estado · foto) | 🔸 enmascarada (sin merge) | 🟢 **scraping en vivo** |
+| statusvzla.com | Base44 entities (buscadas + encontradas de hospital/refugio, paginado) | — | 🟢 **scraping en vivo** |
 | desaparecidosterremotovenezuela.com | API protegida | — | 🔒 bloqueada por reCAPTCHA (no se fuerza) |
 
 > Las fuentes activas se scrapean en vivo periódicamente (según el intervalo de

@@ -10,6 +10,7 @@ import { DesaparecidosVenezuelaAdapter } from '../src/sources/desaparecidosvenez
 import { AfectadosAdapter } from '../src/sources/afectados.ts';
 import { VenezuelaReportaAdapter } from '../src/sources/venezuelareporta.ts';
 import { VzlanosAdapter } from '../src/sources/vzlanos.ts';
+import { StatusVzlaAdapter } from '../src/sources/statusvzla.ts';
 
 let pass = 0, fail = 0;
 const check = (n: string, c: boolean) => { console.log(`${c ? '✅' : '❌'} ${n}`); c ? pass++ : fail++; };
@@ -148,6 +149,43 @@ check('vzlanos: sourceId = id, sourceUrl a /desaparecidos',
   vzl[0].sourceId === '88' && vzl[0].sourceUrl === 'https://vzlanos.com/desaparecidos');
 check('vzlanos: edad numérica, null → undefined',
   vzl[0].age === 60 && vzl[1].age === undefined);
+
+// --- statusvzla: Base44 entities (buscadas + encontradas de hospital), sin cédula ---
+const svzSample = JSON.stringify({
+  buscadas: [
+    { id: 'b1', nombre_completo: 'Oriana Ustaris ', edad_aprox: '25', estado_region: 'Distrito Capital ',
+      ciudad: 'Caracas ', ultima_ubicacion_conocida: 'San Bernardino ', sexo: '',
+      estado_caso: 'buscando', contacto_telefono: '04141234567', foto_url: null,
+      created_date: '2026-06-28T20:51:35.566000', is_sample: false },
+    { id: 'b2', nombre_completo: '', estado_caso: 'buscando', is_sample: false }, // sin nombre → omite
+    { id: 'b3', nombre_completo: 'Demo Persona', estado_caso: 'buscando', is_sample: true }, // sample → omite
+  ],
+  encontradas: [
+    { id: 'e1', nombre_o_descripcion: 'YARLYS CONTRERAS', condicion: 'no_identificado',
+      nivel_verificacion: 'institucional', ubicacion_actual: 'Periférico de Catia',
+      nombre_lugar: 'Periférico de Catia', tipo_lugar: 'hospital', estado_region: 'Distrito Capital',
+      fuente: 'subida_masiva_institucional', foto_url: 'https://cdn.statusvzla.com/x.jpg', is_sample: false },
+    { id: 'e2', nombre_o_descripcion: 'Negro Reyes', condicion: 'a_salvo', ubicacion_actual: 'hospital, las madres',
+      tipo_lugar: 'refugio', is_sample: false },
+    { id: 'e3', nombre_o_descripcion: 'Persona Sin Vida', condicion: 'fallecido', is_sample: false }, // deceso → omite
+    { id: 'e4', nombre_o_descripcion: '', condicion: 'herido_leve', is_sample: false }, // sin nombre → omite
+  ],
+});
+const svz = new StatusVzlaAdapter().parse(svzSample);
+const svzById = (id: string) => svz.find((r) => r.sourceId === id);
+check('statusvzla: ingiere buscadas + encontradas válidas (omite vacíos/sample/deceso)', svz.length === 3);
+check('statusvzla: buscada "buscando" → sin_contacto, sin cédula, nombre/zona trim',
+  svzById('b1')?.status === 'sin_contacto' && svzById('b1')?.cedula === undefined &&
+  svzById('b1')?.fullName === 'Oriana Ustaris' && svzById('b1')?.state === 'Distrito Capital' &&
+  svzById('b1')?.age === 25);
+check('statusvzla: encontrada (hospital) → localizado, lugar como referencia',
+  svzById('e1')?.status === 'localizado' && (svzById('e1')?.reference ?? '').includes('Periférico de Catia'));
+check('statusvzla: foto absoluta se conserva', svzById('e1')?.photoUrl === 'https://cdn.statusvzla.com/x.jpg');
+check('statusvzla: registro is_sample se descarta', !svz.some((r) => r.fullName === 'Demo Persona'));
+check('statusvzla: condición FALLECIDO se excluye (nunca "a salvo")',
+  !svz.some((r) => /Sin Vida/.test(r.fullName)));
+check('statusvzla: sin cédula en ninguna entidad', svz.every((r) => r.cedula === undefined));
+check('statusvzla: sourceUrl a /personas', svzById('b1')?.sourceUrl === 'https://statusvzla.com/personas');
 
 console.log(`\n${pass} OK, ${fail} fallidas`);
 process.exit(fail === 0 ? 0 : 1);

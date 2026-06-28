@@ -9,6 +9,7 @@ import { DesaparecidosVenezuelaAdapter } from './desaparecidosvenezuela.ts';
 import { AfectadosAdapter } from './afectados.ts';
 import { VenezuelaReportaAdapter } from './venezuelareporta.ts';
 import { VzlanosAdapter } from './vzlanos.ts';
+import { StatusVzlaAdapter } from './statusvzla.ts';
 
 // Solo fuentes con scraping REAL: no inyectamos datos sintéticos en producción.
 //
@@ -23,4 +24,5 @@ export const adapters: SourceAdapter[] = [
   new AfectadosAdapter(),              // HTML/SSR multipágina (cédula enmascarada = pista)
   new VenezuelaReportaAdapter(),       // HTML/SSR paginado (sin cédula), UUID por ficha, incremental
   new VzlanosAdapter(),                // API JSON /api/personas paginada (cédula enmascarada = sin merge)
+  new StatusVzlaAdapter(),             // Base44 entities (buscadas + encontradas de hospital), sin cédula
 ];
