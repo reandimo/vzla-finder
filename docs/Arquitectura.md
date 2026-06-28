@@ -33,6 +33,7 @@ API de búsqueda + cache  ──►  Agrupación visual "posible duplicado"  ─
 | `scheduler.ts` | Loops por fuente (intervalo / jitter / backoff). |
 | `cache.ts` | Query cache (TTL) para el buscador. |
 | `search.ts` | Búsqueda unificada por cédula y por nombre + etiqueta de "posible duplicado". |
+| `recall.ts` | Recall de candidatos para el desempate por IA: arma clusters de posibles duplicados sin cédula (blocking + ≥2 tokens). No fusiona. |
 | `server.ts` | Servidor HTTP: API (`/api/search`, `/api/sources`, `/api/pfif`, `/api/suggest-source`) + estático. |
 | `pfif.ts` | Serializador PFIF 1.4 (feed público, sin PII). |
 | `cli.ts` | CLI: `ingest` / `watch` / `search`. |
@@ -50,3 +51,4 @@ Regla central: **el dato no se fusiona a ciegas.** Cédula = match exacto. Sin c
 
 - Node 24 ejecutando TypeScript con el **transform nativo** (`--experimental-transform-types`, sin esbuild).
 - Corre en una VM de Google Cloud detrás de **Caddy** (HTTPS) + **Cloudflare** (proxy/edge cache). El servidor como `systemd service`; la ingesta como `systemd timer` horario. La DB con PII vive fuera del docroot.
+- **Desempate por IA** (`scripts/ai-dedup.ts`): stage *offline* que corre aparte de la búsqueda (no agrega latencia), una vez al día. Recorre los posibles duplicados sin cédula y guarda veredictos de confianza en `ai_match_verdicts` — **nunca fusiona** y la cédula nunca va al juez. Ver [Deduplicación y agrupación](Deduplicacion-y-agrupacion.md#5-ia-como-capa-de-confianza).

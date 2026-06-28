@@ -47,6 +47,8 @@ flowchart LR
     C -->|sin cédula = no fusiona| D
     D --> E[Reconciliación de estado<br/>la buena noticia gana]
     E --> F[API de búsqueda + cache]
+    D --> I[IA: confianza de duplicado<br/>offline · sugerencia · no fusiona]
+    I --> H
     F --> H[Agrupación visual<br/>posible duplicado]
     H --> G[🌐 Buscador web]
 ```
@@ -57,6 +59,7 @@ flowchart LR
 4. **Reconcilia el estado** — *localizado* de cualquier fuente consolida a “a salvo”, guardando quién y cuándo lo reportó.
 5. **Sirve la búsqueda** — por cédula o nombre, con cache y enlaces de vuelta a cada fuente.
 6. **Agrupa posibles duplicados a la vista** — en la búsqueda por nombre, los registros con nombre muy parecido (y sin cédula que los confirme) se marcan como *posible duplicado* y se colapsan bajo un **representante** (cédula > localizado > ficha más completa > más reciente), con el resto a un clic. Es una **pista visual no destructiva**: el dato nunca se fusiona. Ver [docs/Deduplicacion-y-agrupacion.md](docs/Deduplicacion-y-agrupacion.md).
+7. **IA como capa de confianza** — un stage *offline* (tras la ingesta) recorre los posibles duplicados sin cédula y un juez de IA estima qué tan probable es que dos registros sean la misma persona (typos, orden de apellidos, acentos). Esa confianza mejora el agrupado. **Nunca fusiona** (es una sugerencia auditable y reversible) y **la cédula nunca va al prompt**. Ver [docs/Deduplicacion-y-agrupacion.md](docs/Deduplicacion-y-agrupacion.md#5-ia-como-capa-de-confianza).
 
 El **cacheo es cortés**: requests condicionales (`ETag`/`Last-Modified`/hash) evitan re-descargar lo que no cambió, y una fuente caída nunca frena a las demás.
 

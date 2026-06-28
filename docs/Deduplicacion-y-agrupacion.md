@@ -50,6 +50,22 @@ El resto queda a un clic ("Ver N posibles duplicados"). **Nunca se oculta un reg
 
 > Importante: no hay "registro maestro" en el dato. La agrupación es **solo visual** y se calcula en cada búsqueda; el almacenamiento sigue teniendo cada registro por separado.
 
-## Posible v2: IA como desempate
+## 5. IA como capa de confianza
 
-La IA es buena para resolución de entidades difusa (typos como *Ustariz/Uztaris*, apodos, orden de apellidos). El uso sensato sería **solo como desempate** sobre el cluster chico de cada búsqueda — nunca pairwise sobre toda la base, y **siempre** como sugerencia, no como fusión destructiva. Pendiente.
+La IA es buena para resolución de entidades difusa (typos como *Ustariz/Uztaris*, apodos, orden de apellidos). La usamos **solo como apoyo** y **nunca para fusionar**: estima la confianza de que dos posibles duplicados sean la misma persona, y esa confianza mejora el agrupado. Una fusión equivocada escondería a un desaparecido; por eso la IA *sugiere*, no decide.
+
+### El flujo (offline, tras la ingesta)
+
+Es un stage que corre aparte del camino de búsqueda (no agrega latencia ni costo por consulta):
+
+1. **Cédula (determinista).** Lo que ya tiene cédula se fusiona exacto; la IA ni lo ve.
+2. **Recall de candidatos** (`src/recall.ts`, `buildDupClusters`). Sobre las personas **sin** cédula, arma clusters chicos de candidatos: *blocking* por token de nombre (exacto + prefijo, para no comparar todo contra todo) y candidatura por **≥2 tokens compartidos** con tolerancia a un typo. Descarta nombres placeholder ("Persona por identificar", etc.).
+3. **Juez de IA** (`scripts/ai-dedup.ts`). Recibe cada cluster (nombre, edad, última referencia, zona — **sin cédula**) y decide qué registros son la misma persona, priorizando nombre y desempatando por edad/referencia/zona. Conservador: ante la duda, distintos.
+4. **Veredictos** (`ai_match_verdicts`). Se guarda un veredicto por par (`same`/`different`/`unsure` + confianza + razón + modelo), **auditable y reversible**. El front lo usa para agrupar y rankear mejor el "posible duplicado". El almacenamiento sigue con cada registro por separado.
+
+### Dos jueces posibles
+
+- **Claude vía Claude Code** (sin API key): `ai-dedup.ts dump` saca los clusters, Claude los juzga, `ai-dedup.ts apply` persiste. Pensado para correr en una tarea agendada.
+- **API de Anthropic** (automático): con `AI_DEDUP_API_KEY`, el mismo script juzga con `claude-haiku-4-5` y un `systemd timer`.
+
+En ambos: idempotente y **cacheado por `pair_hash`** (un par ya juzgado no se re-evalúa si sus datos no cambiaron), tope por corrida, y **la cédula nunca entra al prompt**.

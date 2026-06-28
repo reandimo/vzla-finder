@@ -383,6 +383,7 @@
         <li><b>Por cédula = misma persona.</b> Si dos reportes comparten la cédula, se fusionan (coincidencia exacta). Las cédulas <b>V-</b> y <b>E-</b> nunca se confunden entre sí.</li>
         <li><b>Sin cédula, no se fusiona solo.</b> Se trata como una <i>posible</i> coincidencia para revisión; nunca decidimos por ti que dos personas son la misma.</li>
         <li><b>Posibles duplicados, agrupados a la vista.</b> Cuando varios reportes tienen un nombre muy parecido y no hay cédula que lo confirme, los marcamos como <i>posible duplicado</i> y los agrupamos bajo una tarjeta —mostrando la ficha más completa (con cédula, ya localizada o con más datos)—, para que no revises cinco tarjetas casi iguales. Despliegas el resto con un clic: <b>nunca ocultamos un registro del todo</b>.</li>
+        <li><b>IA como apoyo, nunca para fusionar.</b> Para esos posibles duplicados sin cédula, sumamos un análisis de inteligencia artificial que estima qué tan probable es que dos registros sean la misma persona (tolerando errores de tipeo, orden de apellidos y acentos) y usa esa confianza para agrupar y ordenar mejor. Es siempre una <i>sugerencia</i> visual y reversible: <b>el dato no se fusiona</b>, y a la IA <b>nunca</b> le pasamos tu cédula.</li>
         <li><b>La buena noticia gana.</b> Si cualquier plataforma reporta a alguien como <i>localizado</i>, ese es el estado que ves —con quién lo reportó—.</li>
       </ul>
     </details>
