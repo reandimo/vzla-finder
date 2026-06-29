@@ -14,8 +14,10 @@
  * MODOS (primer argumento):
  *   (sin arg)        Juzga con Anthropic. Sin AI_DEDUP_API_KEY → DRY RUN (reporta
  *                    clusters, no gasta ni escribe).
- *   dump             Emite los clusters candidatos como JSON (con ids) por stdout,
- *                    para que un juez externo (Claude) los evalúe.
+ *   dump [--new]     Emite los clusters candidatos como JSON (con ids) por stdout,
+ *                    para que un juez externo (Claude) los evalúe. Con `--new`,
+ *                    salta los clusters ya juzgados (cacheados por pair_hash) →
+ *                    para la corrida DIARIA, que solo procesa lo nuevo/cambiado.
  *   apply <archivo>  Lee un JSON de juicios y persiste los veredictos.
  *
  * Formato de `apply` (un objeto por cluster):
@@ -105,9 +107,12 @@ function buildClusters(store: Store) {
 }
 
 // ---------- modo: dump ----------
-function runDump(store: Store) {
+function runDump(store: Store, onlyNew = false) {
   const { work } = buildClusters(store);
-  const dump = work.slice(0, MAX_CLUSTERS).map((c, i) => ({
+  // `--new`: salta los clusters ya juzgados (todos sus pares cacheados por
+  // pair_hash). Así la corrida DIARIA solo emite lo nuevo/cambiado → carga mínima.
+  const pool = onlyNew ? work.filter((c) => !clusterIsCached(store, c.members)) : work;
+  const dump = pool.slice(0, MAX_CLUSTERS).map((c, i) => ({
     cluster: i,
     members: c.members.map((m, j) => ({
       idx: j, id: m.personId, name: m.fullName,
@@ -214,7 +219,7 @@ async function runAuto(store: Store) {
 // ---------- dispatch ----------
 const store = new Store(DB);
 const mode = process.argv[2];
-if (mode === 'dump') runDump(store);
+if (mode === 'dump') runDump(store, process.argv[3] === '--new');
 else if (mode === 'apply') {
   if (!process.argv[3]) { console.error('uso: ai-dedup.ts apply <archivo.json>'); process.exit(1); }
   runApply(store, process.argv[3]);
