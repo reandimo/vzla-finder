@@ -1,9 +1,17 @@
 /**
- * Dedup en capas:
+ * Dedup en capas (camino CALIENTE de la ingesta — barato y determinista):
  *
  *   Capa 1 — CÉDULA: match exacto. Misma cédula = misma persona. Merge seguro.
- *   Capa 2 — FUZZY (sin cédula): nombre + edad ± margen + mismo estado.
- *            NO fusiona. Crea una "posible coincidencia" para revisión humana.
+ *   Capa 2 — FALLBACK por silo (sin cédula): reusa la persona si este mismo silo
+ *            ya reportó este sourceId; si no, crea persona nueva. NUNCA fusiona
+ *            entre silos sin cédula.
+ *
+ * El descubrimiento de "posibles coincidencias" sin cédula (fuzzy de nombre) NO
+ * vive acá: se hace OFFLINE en `recall.ts` (buildDupClusters, con blocking por
+ * tokens) + la capa de IA. Antes la ingesta hacía un escaneo O(nuevos × todas-las-
+ * sin-cédula) con nameSimilarity por cada registro nuevo — tolerable con la base
+ * chica, pero con ~57k pasó a quemar un core ~30 min por corrida; esas sugerencias
+ * además no las consumía nadie. Por eso se quitó del camino caliente.
  *
  * Regla de oro: un falso "es la misma persona / está a salvo" es más cruel que
  * no tener el dato. Ante la duda, sugerir; nunca decidir solo.
@@ -11,10 +19,7 @@
 import { randomUUID } from 'node:crypto';
 import type { RawRecord, PersonRecord } from './types.ts';
 import { Store } from './db.ts';
-import { normalizeCedula, normalizeName, nameSimilarity } from './normalize.ts';
-
-const NAME_THRESHOLD = 0.86; // umbral conservador para sugerir coincidencia
-const AGE_TOLERANCE = 2;
+import { normalizeCedula, normalizeName } from './normalize.ts';
 
 export interface ResolveResult {
   personId: string;
@@ -27,8 +32,8 @@ export interface ResolveResult {
  * - Con cédula: busca/crea por cédula (merge determinístico entre silos).
  * - Sin cédula, FALLBACK por silo: si este mismo silo ya reportó este sourceId,
  *   reusa esa persona (evita duplicar en cada re-scrape). NO cruza entre silos.
- * - Sin cédula y sin antecedente: crea persona nueva y lanza sugerencias fuzzy
- *   (revisión humana). Nunca fusiona entre silos sin cédula.
+ * - Sin cédula y sin antecedente: crea persona nueva. El cruce fuzzy entre silos
+ *   se hace offline (recall.ts + IA), no acá. Nunca fusiona sin cédula.
  *
  * `sourceDomain` habilita el fallback por silo; omitirlo conserva el viejo
  * comportamiento (siempre crea).
@@ -64,10 +69,10 @@ export function resolvePerson(
     }
   }
 
-  // Sin cédula y sin antecedente: crear persona nueva y sugerir (sin fusionar).
+  // Sin cédula y sin antecedente: crear persona nueva. El descubrimiento de
+  // posibles coincidencias (fuzzy) corre offline en recall.ts + IA, no acá.
   const person = newPerson(raw, null, now);
   store.upsertPerson(person);
-  suggestFuzzyMatches(store, person, raw, now);
   return { personId: person.personId, created: true, matchedBy: 'new' };
 }
 
@@ -85,33 +90,6 @@ function enrichGaps(existing: PersonRecord, raw: RawRecord, now: string): Person
     photoUrl: existing.photoUrl ?? raw.photoUrl ?? null,
     updatedAt: now,
   };
-}
-
-function suggestFuzzyMatches(
-  store: Store,
-  person: PersonRecord,
-  raw: RawRecord,
-  now: string,
-) {
-  const candidates = store.personsWithoutCedula(raw.state ?? null);
-  for (const cand of candidates) {
-    if (cand.personId === person.personId) continue;
-    const sim = nameSimilarity(person.fullName, cand.fullName);
-    if (sim < NAME_THRESHOLD) continue;
-    if (
-      person.age != null &&
-      cand.age != null &&
-      Math.abs(person.age - cand.age) > AGE_TOLERANCE
-    )
-      continue;
-    store.addSuggestion({
-      personIdA: person.personId,
-      personIdB: cand.personId,
-      score: Number(sim.toFixed(3)),
-      reason: `nombre~${sim.toFixed(2)}; estado=${person.lastSeenState ?? '?'}; edad±${AGE_TOLERANCE}`,
-      createdAt: now,
-    });
-  }
 }
 
 function newPerson(raw: RawRecord, cedula: string | null, now: string): PersonRecord {
