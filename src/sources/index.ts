@@ -10,6 +10,7 @@ import { AfectadosAdapter } from './afectados.ts';
 import { VenezuelaReportaAdapter } from './venezuelareporta.ts';
 import { VzlanosAdapter } from './vzlanos.ts';
 import { StatusVzlaAdapter } from './statusvzla.ts';
+import { HospitalesAdapter } from './hospitales.ts';
 
 // Solo fuentes con scraping REAL: no inyectamos datos sintéticos en producción.
 //
@@ -25,4 +26,5 @@ export const adapters: SourceAdapter[] = [
   new VenezuelaReportaAdapter(),       // HTML/SSR paginado (sin cédula), UUID por ficha, incremental
   new VzlanosAdapter(),                // API JSON /api/personas paginada (cédula enmascarada = sin merge)
   new StatusVzlaAdapter(),             // Base44 entities (buscadas + encontradas de hospital), sin cédula
+  new HospitalesAdapter(),             // FastAPI export pacientes de hospital (localizado), CON cédula
 ];

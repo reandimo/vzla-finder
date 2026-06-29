@@ -11,6 +11,7 @@ import { AfectadosAdapter } from '../src/sources/afectados.ts';
 import { VenezuelaReportaAdapter } from '../src/sources/venezuelareporta.ts';
 import { VzlanosAdapter } from '../src/sources/vzlanos.ts';
 import { StatusVzlaAdapter } from '../src/sources/statusvzla.ts';
+import { HospitalesAdapter } from '../src/sources/hospitales.ts';
 
 let pass = 0, fail = 0;
 const check = (n: string, c: boolean) => { console.log(`${c ? '✅' : '❌'} ${n}`); c ? pass++ : fail++; };
@@ -186,6 +187,31 @@ check('statusvzla: condición FALLECIDO se excluye (nunca "a salvo")',
   !svz.some((r) => /Sin Vida/.test(r.fullName)));
 check('statusvzla: sin cédula en ninguna entidad', svz.every((r) => r.cedula === undefined));
 check('statusvzla: sourceUrl a /personas', svzById('b1')?.sourceUrl === 'https://statusvzla.com/personas');
+
+// --- hospitales (62.146.225.76:9090): export FastAPI de pacientes, CON cédula ---
+const hospSample = JSON.stringify({
+  generado: '2026-06-29T04:43:05Z', total: 4,
+  pacientes: [
+    { id: 9, nombre_completo: 'Aleida Querales', cedula: '9928918', estado: null, edad: 61,
+      sector: 'La Guaira', hospital: 'Cruz Roja Bellas Artes', processed_at: null },
+    { id: 10, nombre_completo: 'ABRAAN VERGARA', cedula: null, estado: 'HOSPITAL', edad: 18,
+      sector: null, hospital: 'Hospital Vargas' },
+    { id: 11, nombre_completo: 'Persona Fallecida', cedula: '1234567', estado: 'Fallecido',
+      hospital: 'Hospital Militar' }, // deceso → omite
+    { id: 12, nombre_completo: '   ', cedula: null, estado: 'UCI', hospital: 'El Llanito' }, // sin nombre → omite
+  ],
+});
+const hosp = new HospitalesAdapter().parse(hospSample);
+const hospById = (id: string) => hosp.find((r) => r.sourceId === id);
+check('hospitales: ingiere pacientes válidos (omite vacíos y fallecidos)', hosp.length === 2);
+check('hospitales: todos localizado (hallados en hospital)', hosp.every((r) => r.status === 'localizado'));
+check('hospitales: cédula estructurada se usa como clave de merge',
+  hospById('9')?.cedula === '9928918' && hospById('9')?.age === 61);
+check('hospitales: cédula null → undefined (sin merge)', hospById('10')?.cedula === undefined);
+check('hospitales: referencia = hospital · sector', hospById('9')?.reference === 'Cruz Roja Bellas Artes · La Guaira');
+check('hospitales: referencia solo hospital cuando no hay sector', hospById('10')?.reference === 'Hospital Vargas');
+check('hospitales: FALLECIDO se excluye (nunca "a salvo")', !hosp.some((r) => /Fallecida/.test(r.fullName)));
+check('hospitales: sourceUrl al sitio', hospById('9')?.sourceUrl === 'http://62.146.225.76:9090/');
 
 console.log(`\n${pass} OK, ${fail} fallidas`);
 process.exit(fail === 0 ? 0 : 1);
