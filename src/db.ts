@@ -271,6 +271,20 @@ export class Store {
     return (rows as any[]).map(rowToVerdict);
   }
 
+  /**
+   * Veredictos cuyos DOS extremos están dentro de `personIds`. Para precargar de
+   * una sola vez los juicios de IA relevantes a un set de resultados (la búsqueda
+   * por nombre) y agrupar sin consultar par por par.
+   */
+  verdictsAmong(personIds: string[]): AiVerdict[] {
+    if (personIds.length === 0) return [];
+    const ph = personIds.map(() => '?').join(',');
+    const rows = this.db
+      .prepare(`SELECT * FROM ai_match_verdicts WHERE person_id_a IN (${ph}) AND person_id_b IN (${ph})`)
+      .all(...personIds, ...personIds);
+    return (rows as any[]).map(rowToVerdict);
+  }
+
   // --- search ---
   /**
    * Candidatos cuyo nombre normalizado contiene CUALQUIERA de los tokens.

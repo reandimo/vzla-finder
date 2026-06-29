@@ -3,10 +3,19 @@
  * consolidado de todos los silos, con links de vuelta a cada fuente original
  * (ahí están los datos de contacto — no los re-hosteamos).
  */
-import { Store } from './db.ts';
+import { Store, type AiVerdict } from './db.ts';
 import { consolidate } from './reconcile.ts';
 import { normalizeCedula, normalizeName, nameSimilarity } from './normalize.ts';
 import type { ConsolidatedPerson } from './types.ts';
+
+/**
+ * Confianza mínima del veredicto de IA para que pese en el agrupado visual.
+ * Por debajo de esto, la IA "no está segura" → manda la regla determinista.
+ */
+const AI_GROUP_MIN_CONFIDENCE = 0.6;
+
+/** Búsqueda de veredicto de IA entre dos personas (en cualquier orden), o null. */
+export type VerdictLookup = (personIdA: string, personIdB: string) => AiVerdict | null;
 
 /** Resultado con la marca (no destructiva) de "posible duplicado". */
 export interface SearchHit extends ConsolidatedPerson {
@@ -14,6 +23,12 @@ export interface SearchHit extends ConsolidatedPerson {
   dupGroup: number | null;
   /** Cuántos resultados hay en su grupo (1 si es único). */
   dupCount: number;
+  /**
+   * Si la IA juzgó "misma persona" a este registro contra el representante de su
+   * grupo, su confianza (0..1). null si fue agrupado por regla determinista o si
+   * es el representante. Es una PISTA visual: la IA nunca fusiona el dato.
+   */
+  aiConfidence: number | null;
 }
 
 export function searchByCedula(
@@ -45,7 +60,18 @@ export function searchByName(
     .filter(({ sim }) => sim >= 0.3)
     .sort((a, b) => b.sim - a.sim);
   const results = ranked.slice(0, limit).map(({ p }) => consolidate(store, p));
-  return { total: ranked.length, results: tagDuplicates(results) };
+  // Precarga los veredictos de IA relevantes a ESTE set (no par por par) y los
+  // expone como lookup para que el agrupado los use como pista de confianza.
+  const verdicts = store.verdictsAmong(results.map((r) => r.personId));
+  const byPair = new Map<string, AiVerdict>();
+  for (const v of verdicts) byPair.set(pairKey(v.personIdA, v.personIdB), v);
+  const lookup: VerdictLookup = (a, b) => byPair.get(pairKey(a, b)) ?? null;
+  return { total: ranked.length, results: tagDuplicates(results, lookup) };
+}
+
+/** Clave de par order-independiente para indexar veredictos. */
+function pairKey(a: string, b: string): string {
+  return a < b ? `${a}|${b}` : `${b}|${a}`;
 }
 
 /** Tokens significativos del nombre normalizado (descarta ruido corto: "de", "la"). */
@@ -66,13 +92,25 @@ function strength(p: ConsolidatedPerson): number {
 }
 
 /** ¿`a` y `b` son candidatos a "posible duplicado"? Predicado conservador, NO fusión. */
-function linkable(a: ConsolidatedPerson, b: ConsolidatedPerson, ta: Set<string>, tb: Set<string>): boolean {
+function linkable(
+  a: ConsolidatedPerson, b: ConsolidatedPerson,
+  ta: Set<string>, tb: Set<string>,
+  verdict: AiVerdict | null,
+): boolean {
   const ca = a.cedula, cb = b.cedula;
   // Dos cédulas: solo se agrupan si son IGUALES. Cédulas "casi iguales" (typo) NO
   // se deciden acá: un typo de cédula + typo de nombre puede ser otra persona, y
   // distinguirlo es pesar varios campos (nombre/edad/zona/referencia) a la vez —
   // eso lo hace la IA con contexto, no una regla determinista que cuenta dígitos.
   if (ca && cb) return ca === cb;
+  // Veredicto de IA (solo aplica a pares sin dos cédulas; a la IA nunca le pasamos
+  // cédula). Con suficiente confianza, REFINA el agrupado en ambos sentidos: junta
+  // typos que el nombre-contención perdería (Ustariz/Uztaris) y SEPARA homónimos
+  // que el nombre uniría. Sigue siendo etiqueta visual: el dato NO se fusiona.
+  if (verdict && verdict.confidence >= AI_GROUP_MIN_CONFIDENCE) {
+    if (verdict.verdict === 'same') return true;
+    if (verdict.verdict === 'different') return false;
+  }
   // Al menos una sin cédula: el nombre más corto debe estar CONTENIDO en el más
   // largo (≥2 tokens). Así "Oriana Ustariz" ⊆ "Oriana Andrea Ustariz Dinis" sí
   // agrupan, pero "Julio César Diaz" y "Julio César Cruz" —que comparten los dos
@@ -94,12 +132,20 @@ function linkable(a: ConsolidatedPerson, b: ConsolidatedPerson, ta: Set<string>,
  * Criterios de `linkable` (conservador, es una PISTA visual; nunca fusiona):
  *  - sin cédula (al menos uno): ≥2 tokens de nombre compartidos;
  *  - dos cédulas iguales: misma persona;
- *  - dos cédulas distintas: NO se agrupan, salvo que sean un *typo* de cédula
- *    (distancia ≤1) y el nombre coincida — pista de "posible misma persona".
+ *  - dos cédulas distintas: NO se agrupan.
+ *
+ * Si se pasa `getVerdict`, los juicios de IA (con confianza ≥ umbral) refinan el
+ * agrupado: "same" junta lo que el nombre perdería; "different" separa homónimos.
+ * Es solo la etiqueta visual "posible duplicado": el dato NUNCA se fusiona.
  */
-export function tagDuplicates(results: ConsolidatedPerson[]): SearchHit[] {
+export function tagDuplicates(
+  results: ConsolidatedPerson[],
+  getVerdict?: VerdictLookup,
+): SearchHit[] {
   const n = results.length;
   const tokens = results.map(nameTokens);
+  const verdictOf = (i: number, j: number): AiVerdict | null =>
+    getVerdict ? getVerdict(results[i].personId, results[j].personId) : null;
 
   // Líderes primero los más "fuertes" (cédula > localizado > ficha completa), para
   // que el grupo se forme alrededor de un ancla real y estable.
@@ -109,7 +155,7 @@ export function tagDuplicates(results: ConsolidatedPerson[]): SearchHit[] {
   for (const i of order) {
     let chosen = -1;
     for (const L of leaders) {
-      if (linkable(results[i], results[L], tokens[i], tokens[L])) { chosen = L; break; }
+      if (linkable(results[i], results[L], tokens[i], tokens[L], verdictOf(i, L))) { chosen = L; break; }
     }
     if (chosen === -1) { leaders.push(i); leaderOf[i] = i; }
     else leaderOf[i] = chosen;
@@ -128,6 +174,13 @@ export function tagDuplicates(results: ConsolidatedPerson[]): SearchHit[] {
       if (!groupNum.has(root)) groupNum.set(root, next++);
       dupGroup = groupNum.get(root)!;
     }
-    return { ...p, dupGroup, dupCount: count };
+    // Pista de confianza: si la IA dijo "misma persona" entre este registro y su
+    // representante, la exponemos para el front. (El representante no la lleva.)
+    let aiConfidence: number | null = null;
+    if (root !== i) {
+      const v = verdictOf(i, root);
+      if (v && v.verdict === 'same' && v.confidence >= AI_GROUP_MIN_CONFIDENCE) aiConfidence = v.confidence;
+    }
+    return { ...p, dupGroup, dupCount: count, aiConfidence };
   });
 }

@@ -136,5 +136,54 @@ const casiIgual = tagDuplicates([
 check('agrupado: cédula+nombre "casi iguales" NO se agrupan deterministamente (es juicio de la IA)',
   casiIgual[0].dupGroup === null && casiIgual[1].dupGroup === null);
 
+// --- IA como capa de confianza sobre el agrupado (nunca fusiona) ---
+// Helper: cp con personId para poder indexar veredictos por par.
+function cpid(id: string, fullName: string, cedula: string | null = null, extra: Partial<ConsolidatedPerson> = {}) {
+  return cp(fullName, cedula, { personId: id, ...extra } as Partial<ConsolidatedPerson>);
+}
+const verdict = (a: string, b: string, v: 'same' | 'different', confidence: number) =>
+  ({ personIdA: a, personIdB: b, verdict: v, confidence, reason: null, model: 'test', pairHash: '', createdAt: '' });
+
+// (1) "same" con confianza alta JUNTA lo que el nombre-contención perdería
+// (typo de apellido: Ustariz/Uztaris no es contención, pero la IA dice misma persona).
+{
+  const lookup = (a: string, b: string) =>
+    ((a === 'p1' && b === 'p2') || (a === 'p2' && b === 'p1'))
+      ? verdict('p1', 'p2', 'same', 0.9) : null;
+  const grouped = tagDuplicates([
+    cpid('p1', 'Oriana Ustariz'),
+    cpid('p2', 'Oriana Uztaris'), // typo: comparte solo "oriana" → sin IA NO agruparía
+  ], lookup);
+  check('IA: "same" (conf alta) agrupa typos que el nombre solo no une',
+    grouped[0].dupGroup != null && grouped[0].dupGroup === grouped[1].dupGroup);
+  check('IA: el miembro no-representante expone aiConfidence',
+    grouped.some((p) => p.aiConfidence === 0.9) && grouped.some((p) => p.aiConfidence === null));
+}
+
+// (2) "different" con confianza alta SEPARA homónimos que el nombre uniría
+// (contención perfecta de nombre, pero la IA dice que son personas distintas).
+{
+  const lookup = (a: string, b: string) =>
+    ((a === 'q1' && b === 'q2') || (a === 'q2' && b === 'q1'))
+      ? verdict('q1', 'q2', 'different', 0.85) : null;
+  const split = tagDuplicates([
+    cpid('q1', 'Maria Gonzalez', null, { age: 20 } as any),
+    cpid('q2', 'Maria Gonzalez', null, { age: 70 } as any), // mismo nombre, edad muy distinta
+  ], lookup);
+  check('IA: "different" (conf alta) separa homónimos que el nombre uniría',
+    split[0].dupGroup === null && split[1].dupGroup === null);
+}
+
+// (3) confianza BAJA NO pesa: manda la regla determinista (nombre-contención).
+{
+  const lookup = () => verdict('r1', 'r2', 'same', 0.3); // por debajo del umbral
+  const weak = tagDuplicates([
+    cpid('r1', 'Pedro Linares'),
+    cpid('r2', 'Pedro Rojas'), // solo comparte "pedro" → sin contención
+  ], lookup);
+  check('IA: "same" con confianza baja NO agrupa (manda lo determinista)',
+    weak[0].dupGroup === null && weak[1].dupGroup === null);
+}
+
 console.log(`\n${pass} OK, ${fail} fallidas`);
 process.exit(fail === 0 ? 0 : 1);

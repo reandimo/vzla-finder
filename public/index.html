@@ -163,6 +163,12 @@
     color: #8a5a00; background: #fff4e0; border: 1px solid #f0d49a; white-space: nowrap;
   }
   .dup-badge::before { content: "⚠ "; }
+  .ai-badge {
+    display: inline-block; vertical-align: middle; margin-left: 6px;
+    font-size: 11px; font-weight: 600; line-height: 1.4;
+    padding: 1px 8px; border-radius: 999px; cursor: help;
+    color: #0f6e6e; background: #e3f4f4; border: 1px solid #a9dada; white-space: nowrap;
+  }
   .dup-group {
     display: grid; gap: 10px; padding: 10px;
     border: 1px dashed #f0d49a; border-radius: 16px; background: #fffdf6;
@@ -578,6 +584,13 @@
   function dupBadge(label, title) {
     return ` <span class="dup-badge" title="${esc(title)}">${esc(label)}</span>`;
   }
+  // Pista de confianza de la IA (cuando juzgó "misma persona" contra el representante).
+  // Es solo una sugerencia visual: el dato no se fusiona y a la IA nunca le pasamos la cédula.
+  function aiTag(conf) {
+    if (conf == null) return '';
+    const pct = Math.round(conf * 100);
+    return ` <span class="ai-badge" title="La IA estimó que es la misma persona con ${pct}% de confianza. Es una pista para agrupar; nunca fusionamos el dato ni le pasamos la cédula a la IA.">🤖 ${pct}%</span>`;
+  }
 
   function renderCards() {
     resultsEl.innerHTML = '';
@@ -626,11 +639,14 @@
         }
       }
 
+      // ¿La IA ayudó a formar este grupo? (algún miembro juzgado "misma persona").
+      const aiInGroup = rest.some((m) => m.aiConfidence != null);
+
       const wrap = document.createElement('div');
       wrap.className = 'dup-group';
       wrap.appendChild(makeCard(members[0], dupBadge(
-        `posible duplicado · ${members.length}`,
-        `Agrupamos ${members.length} resultados con nombre muy parecido (posible misma persona). Mostramos el más completo; los demás están abajo. No los unimos automáticamente sin cédula.`),
+        `posible duplicado · ${members.length}${aiInGroup ? ' · 🤖' : ''}`,
+        `Agrupamos ${members.length} resultados con nombre muy parecido (posible misma persona). Mostramos el más completo; los demás están abajo. No los unimos automáticamente sin cédula.${aiInGroup ? ' La IA ayudó a estimar la coincidencia (pista, no fusión).' : ''}`),
         groupSources));
 
       const box = document.createElement('div');
@@ -638,7 +654,7 @@
       box.hidden = true;
       for (const m of rest) {
         box.appendChild(makeCard(m, dupBadge('posible duplicado',
-          'Nombre muy parecido al de arriba; podría ser la misma persona. No los unimos sin cédula.')));
+          'Nombre muy parecido al de arriba; podría ser la misma persona. No los unimos sin cédula.') + aiTag(m.aiConfidence)));
       }
 
       const toggle = document.createElement('button');
