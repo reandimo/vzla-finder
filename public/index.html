@@ -805,8 +805,10 @@
       const summaryEl = document.getElementById('sources-summary');
       if (summaryEl && typeof data.totalRecords === 'number') {
         const n = data.totalRecords.toLocaleString('es-VE');
-        summaryEl.textContent =
-          `${n} registros reunidos de ${data.sources.length} plataforma${data.sources.length === 1 ? '' : 's'} ciudadanas, deduplicados por cédula.`;
+        summaryEl.innerHTML =
+          `<b>${n} registros</b> reunidos de ${data.sources.length} plataforma${data.sources.length === 1 ? '' : 's'} ciudadanas. ` +
+          `Son <b>registros, no personas únicas</b>: una misma persona suele estar reportada en varias plataformas. ` +
+          `Unimos por cédula y agrupamos los posibles duplicados —con apoyo de IA— para mostrarte la información lo más limpia posible.`;
       }
 
       // Turnstile anti-abuso: solo si el server lo tiene configurado.
