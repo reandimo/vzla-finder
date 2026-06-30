@@ -11,14 +11,14 @@ import { VenezuelaReportaAdapter } from './venezuelareporta.ts';
 import { VzlanosAdapter } from './vzlanos.ts';
 import { StatusVzlaAdapter } from './statusvzla.ts';
 import { HospitalesAdapter } from './hospitales.ts';
-import { DesaparecidosTerremotoAdapter } from './desaparecidos.ts';
+// DesaparecidosTerremotoAdapter (API integradores "Reconexión", desaparecidos.ts):
+// integrada y VERIFICADA (key + mapeo OK contra data viva), pero GATEADA. El WAF de
+// CloudFront del proveedor bloquea la IP de datacenter de la VM (34.30.2.222) con 403.
+// ➜ ACTIVAR cuando el admin de theempire.tech allowliste 34.30.2.222: descomentar el
+//   import de abajo y su entrada en el arreglo, + deploy. El adapter ya está listo.
+// import { DesaparecidosTerremotoAdapter } from './desaparecidos.ts';
 
 // Solo fuentes con scraping REAL: no inyectamos datos sintéticos en producción.
-//
-// desaparecidos.ts ahora SÍ se incluye: ya no se scrapea el sitio (protegido por
-// reCAPTCHA), sino su API oficial de integradores por convenio (key en
-// DESAPARECIDOS_API_KEY). Sin la key la fuente se salta sola (el runner aísla el
-// error y sigue con las demás).
 export const adapters: SourceAdapter[] = [
   new VenezuelaTeBuscaAdapter(),       // React Router /_root.data (turbo-stream), trae cédula
   new EstoyAquiAdapter(),              // API JSON /api/datos (buscadas + encontradas), trae cédula
@@ -28,5 +28,5 @@ export const adapters: SourceAdapter[] = [
   new VzlanosAdapter(),                // API JSON /api/personas paginada (cédula enmascarada = sin merge)
   new StatusVzlaAdapter(),             // Base44 entities (buscadas + encontradas de hospital), sin cédula
   new HospitalesAdapter(),             // FastAPI export pacientes de hospital (localizado), CON cédula
-  new DesaparecidosTerremotoAdapter(), // API integradores "Reconexión" /personas (cursor), CON cédula
+  // new DesaparecidosTerremotoAdapter(), // GATEADA hasta allowlist de IP (ver nota arriba)
 ];
