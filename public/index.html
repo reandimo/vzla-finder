@@ -241,6 +241,8 @@
   .pending-note b { color: var(--waiting); }
   .pending-list .source-row { border-style: dashed; }
   .pending-list .source-row .when { color: #cf142b; }
+  .source-row .live.help { background: var(--accent); }
+  .acopio-list .desc { flex-basis: 100%; margin-left: 18px; font-size: 12.5px; color: var(--muted); }
   .api-note { background: #eef6f6; border: 1px solid #cfe3e3; border-radius: 12px; padding: 12px 14px; margin: 16px 0 0; font-size: 13px; color: var(--ink); }
   .api-note b { color: var(--accent); }
   .api-note code { background: #dcebeb; color: #0c5c5c; padding: 1px 6px; border-radius: 5px; font-size: 12px; word-break: break-all; }
@@ -399,6 +401,41 @@
         <li><b>La buena noticia gana.</b> Si cualquier plataforma reporta a alguien como <i>localizado</i>, ese es el estado que ves —con quién lo reportó—.</li>
       </ul>
     </details>
+  </section>
+
+  <section class="panel" aria-labelledby="acopio-title">
+    <div class="panel-head">
+      <div>
+        <h2 id="acopio-title">¿Quieres ayudar? Centros de acopio y refugios</h2>
+        <p id="acopio-summary">Estas plataformas reúnen dónde llevar donaciones, refugios y puntos de ayuda tras el terremoto. No las operamos nosotros: enlazamos a cada una.</p>
+      </div>
+    </div>
+    <ul class="source-list acopio-list">
+      <li class="source-row"><span class="live help" title="enlace de ayuda"></span>
+        <a href="https://panitasmap.org/" target="_blank" rel="noopener noreferrer">panitasmap.org</a>
+        <span class="desc">Mapa colaborativo de centros de acopio (Venezuela y exterior) con dirección, teléfono, WhatsApp y qué donaciones aceptan.</span></li>
+      <li class="source-row"><span class="live help" title="enlace de ayuda"></span>
+        <a href="https://vzlayuda.com/ayudar" target="_blank" rel="noopener noreferrer">vzlayuda.com/ayudar</a>
+        <span class="desc">Directorio "Quiero ayudar": canales y puntos para colaborar tras el terremoto.</span></li>
+      <li class="source-row"><span class="live help" title="enlace de ayuda"></span>
+        <a href="https://caracasayuda.com/" target="_blank" rel="noopener noreferrer">caracasayuda.com</a>
+        <span class="desc">Mapa de puntos de ayuda: agua, comida, refugios, hospitales y centros de acopio.</span></li>
+      <li class="source-row"><span class="live help" title="enlace de ayuda"></span>
+        <a href="https://terremotovenezuela.app/" target="_blank" rel="noopener noreferrer">terremotovenezuela.app</a>
+        <span class="desc">Mapa de emergencia y rescate con centros de acopio y refugios verificados.</span></li>
+      <li class="source-row"><span class="live help" title="enlace de ayuda"></span>
+        <a href="https://centraldeayudavenezuela.com/" target="_blank" rel="noopener noreferrer">centraldeayudavenezuela.com</a>
+        <span class="desc">Directorio de emergencia con canales y puntos de ayuda.</span></li>
+      <li class="source-row"><span class="live help" title="enlace de ayuda"></span>
+        <a href="https://directorio-sismo.netlify.app/" target="_blank" rel="noopener noreferrer">directorio-sismo.netlify.app</a>
+        <span class="desc">"Venezuela Solidaria": directorio de ayuda y recursos para damnificados.</span></li>
+      <li class="source-row"><span class="live help" title="enlace de ayuda"></span>
+        <a href="https://emergenciavenezuela.com/" target="_blank" rel="noopener noreferrer">emergenciavenezuela.com</a>
+        <span class="desc">Centro de información del terremoto: mapa de daños, refugios y recursos de emergencia.</span></li>
+      <li class="source-row"><span class="live help" title="enlace de ayuda"></span>
+        <a href="https://sismovenezuela.org/" target="_blank" rel="noopener noreferrer">sismovenezuela.org</a>
+        <span class="desc">Mapa de edificios dañados con sección de centros de acopio donde se reciben víveres y donaciones.</span></li>
+    </ul>
   </section>
 
   <footer>
