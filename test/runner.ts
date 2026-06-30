@@ -2,6 +2,7 @@
  * Flujos del runner (cache de snapshot, skip si no cambió, aislamiento de fallas).
  *   npm run test:runner
  */
+import { readFileSync } from 'node:fs';
 import { Store } from '../src/db.ts';
 import { runSource } from '../src/runner.ts';
 import { DesaparecidosTerremotoAdapter } from '../src/sources/desaparecidos.ts';
@@ -13,10 +14,20 @@ const check = (n: string, c: boolean) => { console.log(`${c ? '✅' : '❌'} ${n
 const cfg: SourceConfig = { intervalMinutes: 15, minDelayMs: 0, jitterMs: 0 };
 const store = new Store(':memory:');
 
-// --- 1ª corrida ingiere; 2ª (mismo contenido) hace skip --- (fuente HTML fixtures)
-const first = await runSource(store, new DesaparecidosTerremotoAdapter());
+// Fuente OFFLINE determinista para ejercitar el runner sin red: el cuerpo sale de
+// un fixture y se parsea con el parser REAL del adaptador (3 fichas válidas).
+const fixtureBody = readFileSync(new URL('../fixtures/desaparecidos.json', import.meta.url), 'utf8');
+const realParser = new DesaparecidosTerremotoAdapter();
+const fixtureSource = (): SourceAdapter => ({
+  domain: 'desaparecidosterremotovenezuela.com', config: cfg,
+  async fetchRaw() { return { notModified: false, body: fixtureBody, etag: null, lastModified: null }; },
+  parse: (b: string) => realParser.parse(b),
+});
+
+// --- 1ª corrida ingiere; 2ª (mismo contenido) hace skip ---
+const first = await runSource(store, fixtureSource());
 check('1ª corrida: changed e ingiere los 3', first.outcome === 'changed' && first.fetched === 3);
-const second = await runSource(store, new DesaparecidosTerremotoAdapter());
+const second = await runSource(store, fixtureSource());
 check('2ª corrida sin cambios: unchanged_hash, no reprocesa', second.outcome === 'unchanged_hash' && second.fetched === 0);
 
 // --- 304 Not Modified ---
@@ -47,7 +58,7 @@ check('parse que falla → error', (await runSource(store, badParse)).outcome ==
 // --- aislamiento: una fuente caída no impide ingerir otra ---
 const store2 = new Store(':memory:');
 await runSource(store2, boom);
-const good = await runSource(store2, new DesaparecidosTerremotoAdapter());
+const good = await runSource(store2, fixtureSource());
 check('una fuente caída no frena a las demás', good.outcome === 'changed' && good.fetched === 3);
 
 console.log(`\n${pass} OK, ${fail} fallidas`);

@@ -52,7 +52,7 @@ check('GET /api/search sin parámetros → 400', (await jget('/api/search')).sta
 
 // --- fuentes ---
 const src = await jget('/api/sources');
-check('GET /api/sources lista las fuentes reales activas', src.status === 200 && src.body?.count === 8);
+check('GET /api/sources lista las fuentes reales activas', src.status === 200 && src.body?.count === 9);
 check('GET /api/sources incluye el total de registros cacheados',
   typeof src.body?.totalRecords === 'number' && src.body.totalRecords >= 1);
 

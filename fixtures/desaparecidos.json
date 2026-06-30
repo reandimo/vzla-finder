@@ -1,0 +1,59 @@
+{
+  "personas": [
+    {
+      "id": "per_9f3a2b",
+      "nombre": "José Bastidas",
+      "cedula": "V-12345678",
+      "edad": 34,
+      "estado": "sin-contacto",
+      "descripcion": "Visto por última vez cerca de la estación de metro.",
+      "foto": "https://desaparecidos-terremoto-api.theempire.tech/uploads/per_9f3a2b.jpg",
+      "fecha": "2026-06-20",
+      "ubicacion": {
+        "estado": "Miranda",
+        "municipio": "Baruta",
+        "parroquia": "El Cafetal",
+        "direccion": "Av. Principal, casa 12",
+        "texto": "El Cafetal, Baruta, Miranda"
+      },
+      "centro": null,
+      "contacto": { "nombre": "María Pérez", "telefono": "+58 412-1234567", "correo": null },
+      "createdAt": 1718900000000,
+      "updatedAt": 1719490000000
+    },
+    {
+      "id": "per_4c1d8e",
+      "nombre": "Carla Ríos",
+      "cedula": null,
+      "edad": 28,
+      "estado": "localizado",
+      "descripcion": "Atendida en el centro.",
+      "foto": null,
+      "fecha": null,
+      "ubicacion": { "estado": "La Guaira", "municipio": null, "parroquia": "Maiquetía", "texto": "Maiquetía, La Guaira" },
+      "centro": { "id": "cen_4f2a9c", "nombre": "Hospital Universitario de Caracas", "tipo": "hospital" },
+      "createdAt": 1718900000000,
+      "updatedAt": 1719500000000
+    },
+    {
+      "id": "per_empty",
+      "nombre": "   ",
+      "cedula": "V-99999999",
+      "estado": "sin-contacto",
+      "ubicacion": {}
+    },
+    {
+      "id": "per_7b1e3d",
+      "nombre": "Luis Garófalo",
+      "cedula": "V-8.765.432",
+      "edad": null,
+      "estado": "sin-contacto",
+      "descripcion": null,
+      "foto": null,
+      "ubicacion": { "estado": null, "municipio": null, "parroquia": null, "texto": "Sector Los Cocos" },
+      "centro": null,
+      "updatedAt": 1719510000000
+    }
+  ],
+  "pagination": { "nextCursor": null, "hasMore": false, "limit": 200 }
+}

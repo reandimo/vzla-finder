@@ -11,13 +11,14 @@ import { VenezuelaReportaAdapter } from './venezuelareporta.ts';
 import { VzlanosAdapter } from './vzlanos.ts';
 import { StatusVzlaAdapter } from './statusvzla.ts';
 import { HospitalesAdapter } from './hospitales.ts';
+import { DesaparecidosTerremotoAdapter } from './desaparecidos.ts';
 
 // Solo fuentes con scraping REAL: no inyectamos datos sintéticos en producción.
 //
-// desaparecidos.ts NO se incluye: su API exige verificación reCAPTCHA, así que
-// no es scrapeable por automatización (respetamos su protección). El adaptador
-// y su fixture quedan para los tests. venezuelareporta.org (API Supabase) es la
-// próxima candidata a sumar.
+// desaparecidos.ts ahora SÍ se incluye: ya no se scrapea el sitio (protegido por
+// reCAPTCHA), sino su API oficial de integradores por convenio (key en
+// DESAPARECIDOS_API_KEY). Sin la key la fuente se salta sola (el runner aísla el
+// error y sigue con las demás).
 export const adapters: SourceAdapter[] = [
   new VenezuelaTeBuscaAdapter(),       // React Router /_root.data (turbo-stream), trae cédula
   new EstoyAquiAdapter(),              // API JSON /api/datos (buscadas + encontradas), trae cédula
@@ -27,4 +28,5 @@ export const adapters: SourceAdapter[] = [
   new VzlanosAdapter(),                // API JSON /api/personas paginada (cédula enmascarada = sin merge)
   new StatusVzlaAdapter(),             // Base44 entities (buscadas + encontradas de hospital), sin cédula
   new HospitalesAdapter(),             // FastAPI export pacientes de hospital (localizado), CON cédula
+  new DesaparecidosTerremotoAdapter(), // API integradores "Reconexión" /personas (cursor), CON cédula
 ];

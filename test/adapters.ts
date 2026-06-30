@@ -33,12 +33,29 @@ check('vtb: idNumber → cédula', vtb[0].cedula === 'V-7.654.321');
 check('vtb: status "missing" → sin_contacto', vtb[0].status === 'sin_contacto');
 check('vtb: photoUrl se vuelve absoluta', (vtb[0].photoUrl ?? '').startsWith('https://venezuelatebusca.com/media/photos'));
 
-// --- desaparecidos: HTML con cheerio ---
-const desap = new DesaparecidosTerremotoAdapter().parse(read('desaparecidos-terremoto.html'));
-check('desap: scrapea las 3 fichas del listado', desap.length === 3);
-check('desap: extrae nombre y cédula', desap[0].fullName === 'Jose Gabriel Perez' && !!desap[0].cedula);
-check('desap: data-estatus="localizado" → localizado', desap.some((r) => r.status === 'localizado'));
-check('desap: ficha sin cédula → cedula undefined', desap.some((r) => r.cedula === undefined));
+// --- desaparecidos (API integradores "Reconexión"): JSON por cursor, CON cédula ---
+const desap = new DesaparecidosTerremotoAdapter().parse(read('desaparecidos.json'));
+const desapById = (id: string) => desap.find((r) => r.sourceId === id);
+check('desap: ingiere fichas con nombre (omite vacíos)', desap.length === 3);
+check('desap: cédula estructurada se usa como clave de merge',
+  desapById('per_9f3a2b')?.cedula === 'V-12345678' && desapById('per_9f3a2b')?.age === 34);
+check('desap: "sin-contacto" → sin_contacto', desapById('per_9f3a2b')?.status === 'sin_contacto');
+check('desap: "localizado" → localizado', desapById('per_4c1d8e')?.status === 'localizado');
+check('desap: cédula null → undefined (sin merge)', desapById('per_4c1d8e')?.cedula === undefined);
+check('desap: ubicación → estado/ciudad (municipio o parroquia)',
+  desapById('per_9f3a2b')?.state === 'Miranda' && desapById('per_9f3a2b')?.city === 'Baruta' &&
+  desapById('per_4c1d8e')?.city === 'Maiquetía');
+check('desap: referencia = descripción · centro',
+  desapById('per_4c1d8e')?.reference === 'Atendida en el centro. · Hospital Universitario de Caracas');
+check('desap: referencia cae a ubicacion.texto cuando no hay descripción/centro',
+  desapById('per_7b1e3d')?.reference === 'Sector Los Cocos');
+check('desap: foto absoluta de la API se conserva',
+  (desapById('per_9f3a2b')?.photoUrl ?? '').startsWith('https://desaparecidos-terremoto-api.theempire.tech/uploads'));
+check('desap: sin foto → undefined', desapById('per_4c1d8e')?.photoUrl === undefined);
+check('desap: sourceUrl al sitio público', desapById('per_9f3a2b')?.sourceUrl === 'https://desaparecidosterremotovenezuela.com/');
+check('desap: fecha → lastSeenAt; sin fecha cae a updatedAt (epoch→ISO)',
+  desapById('per_9f3a2b')?.lastSeenAt === '2026-06-20' &&
+  (desapById('per_4c1d8e')?.lastSeenAt ?? '').startsWith('2024-'));
 
 // --- estoyaqui: API /api/datos (buscadas + encontradas; excluye fallecidos) ---
 const eaqSample = JSON.stringify([{
