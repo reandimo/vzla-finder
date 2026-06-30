@@ -1,0 +1,73 @@
+{
+  "ninos": [
+    {
+      "id": "2a241fc9-ba60-487c-8af6-cd2f58b92320",
+      "code": "NNA-2026-0074",
+      "firstName": "Amaia",
+      "secondName": "",
+      "lastName": "Landaeta Machado",
+      "nickname": "",
+      "sex": "FEMALE",
+      "approximateAge": 6,
+      "nationality": "Venezolana",
+      "cedula": "",
+      "caseStatus": "MISSING",
+      "status": 1,
+      "identityStatus": "UNIDENTIFIED",
+      "observations": "tez morena clara, cabello negro",
+      "currentLocation": { "hospital": "", "area": null, "bedNumber": null },
+      "findLocation": { "state": "Vargas", "municipality": "Vargas" },
+      "photos": { "url": "/uploads/photos/abc.webp", "thumbnailUrl": "/uploads/thumbnails/thumb_abc.webp", "isMain": true },
+      "rescuedAt": "2026-06-30T02:44:29.129Z",
+      "createdAt": "2026-06-30T02:44:29.129Z",
+      "registrationIp": "10.1.2.3",
+      "rescuerCedula": "V-9999999",
+      "rescuerPhone": "+58 412-0000000"
+    },
+    {
+      "id": "8be54a66-56c0-4540-a8a9-914dadda5113",
+      "code": "NNA-2026-0050",
+      "firstName": "Mathias",
+      "secondName": "José",
+      "lastName": "Brazón",
+      "sex": "MALE",
+      "approximateAge": 8,
+      "cedula": "V-31234567",
+      "caseStatus": "HOSPITALIZED",
+      "observations": "",
+      "currentLocation": { "hospital": "Hospital de Niños J.M. de los Ríos", "area": "Pediatría" },
+      "findLocation": { "state": "Distrito Capital", "municipality": "Libertador" },
+      "photos": [
+        { "url": "https://rescateinfantilvenezuela.com/uploads/photos/x.webp", "isMain": false },
+        { "url": "/uploads/photos/main.webp", "isMain": true }
+      ],
+      "rescuedAt": "2026-06-29T10:00:00.000Z",
+      "createdAt": "2026-06-29T10:00:00.000Z"
+    },
+    {
+      "id": "c0ffee00-0000-0000-0000-000000000000",
+      "code": "NNA-2026-0001",
+      "firstName": "Sofía",
+      "lastName": "Pérez",
+      "sex": "FEMALE",
+      "approximateAge": 4,
+      "cedula": null,
+      "caseStatus": "REUNIFIED",
+      "findLocation": { "state": "La Guaira", "municipality": "Maiquetía" },
+      "photos": null,
+      "rescuedAt": "2026-06-28T08:00:00.000Z",
+      "createdAt": "2026-06-28T08:00:00.000Z"
+    },
+    {
+      "id": "deadbeef-0000-0000-0000-000000000000",
+      "code": "NNA-2026-0002",
+      "firstName": "  ",
+      "secondName": "",
+      "lastName": "  ",
+      "sex": "MALE",
+      "caseStatus": "MISSING"
+    }
+  ],
+  "total": 4,
+  "totalPages": 1
+}

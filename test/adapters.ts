@@ -12,6 +12,7 @@ import { VenezuelaReportaAdapter } from '../src/sources/venezuelareporta.ts';
 import { VzlanosAdapter } from '../src/sources/vzlanos.ts';
 import { StatusVzlaAdapter } from '../src/sources/statusvzla.ts';
 import { HospitalesAdapter } from '../src/sources/hospitales.ts';
+import { RescateInfantilAdapter } from '../src/sources/rescateinfantil.ts';
 
 let pass = 0, fail = 0;
 const check = (n: string, c: boolean) => { console.log(`${c ? '✅' : '❌'} ${n}`); c ? pass++ : fail++; };
@@ -229,6 +230,37 @@ check('hospitales: referencia = hospital · sector', hospById('9')?.reference ==
 check('hospitales: referencia solo hospital cuando no hay sector', hospById('10')?.reference === 'Hospital Vargas');
 check('hospitales: FALLECIDO se excluye (nunca "a salvo")', !hosp.some((r) => /Fallecida/.test(r.fullName)));
 check('hospitales: sourceUrl al sitio', hospById('9')?.sourceUrl === 'http://62.146.225.76:9090/');
+
+// --- rescateinfantil: API /api/search paginada (q='' lista todo), niños, CON cédula ---
+const ria = new RescateInfantilAdapter().parse(read('rescateinfantil.json'));
+const riaById = (id: string) => ria.find((r) => r.sourceId === id);
+check('rescateinfantil: ingiere niños con nombre (omite vacíos)', ria.length === 3);
+check('rescateinfantil: compone nombre first+second+last',
+  riaById('8be54a66-56c0-4540-a8a9-914dadda5113')?.fullName === 'Mathias José Brazón');
+check('rescateinfantil: MISSING → sin_contacto',
+  riaById('2a241fc9-ba60-487c-8af6-cd2f58b92320')?.status === 'sin_contacto');
+check('rescateinfantil: HOSPITALIZED/REUNIFIED → localizado',
+  riaById('8be54a66-56c0-4540-a8a9-914dadda5113')?.status === 'localizado' &&
+  riaById('c0ffee00-0000-0000-0000-000000000000')?.status === 'localizado');
+check('rescateinfantil: cédula del NIÑO se usa como clave de merge',
+  riaById('8be54a66-56c0-4540-a8a9-914dadda5113')?.cedula === 'V-31234567');
+check('rescateinfantil: NO toma la cédula/teléfono del rescatista',
+  riaById('2a241fc9-ba60-487c-8af6-cd2f58b92320')?.cedula === undefined &&
+  !JSON.stringify(ria).includes('9999999') && !JSON.stringify(ria).includes('10.1.2.3'));
+check('rescateinfantil: findLocation → estado/ciudad',
+  riaById('2a241fc9-ba60-487c-8af6-cd2f58b92320')?.state === 'Vargas' &&
+  riaById('8be54a66-56c0-4540-a8a9-914dadda5113')?.city === 'Libertador');
+check('rescateinfantil: referencia = hospital · observaciones',
+  riaById('8be54a66-56c0-4540-a8a9-914dadda5113')?.reference === 'Hospital de Niños J.M. de los Ríos' &&
+  (riaById('2a241fc9-ba60-487c-8af6-cd2f58b92320')?.reference ?? '').includes('tez morena'));
+check('rescateinfantil: foto principal (objeto o arreglo) → absoluta',
+  (riaById('2a241fc9-ba60-487c-8af6-cd2f58b92320')?.photoUrl ?? '') === 'https://rescateinfantilvenezuela.com/uploads/photos/abc.webp' &&
+  (riaById('8be54a66-56c0-4540-a8a9-914dadda5113')?.photoUrl ?? '') === 'https://rescateinfantilvenezuela.com/uploads/photos/main.webp');
+check('rescateinfantil: edad y sexo normalizados',
+  riaById('2a241fc9-ba60-487c-8af6-cd2f58b92320')?.age === 6 &&
+  riaById('2a241fc9-ba60-487c-8af6-cd2f58b92320')?.gender === 'F');
+check('rescateinfantil: raw redactado (sin PII de registro)',
+  ria.every((r) => { const k = Object.keys((r.raw ?? {}) as object); return !k.includes('registrationIp') && !k.includes('rescuerCedula'); }));
 
 console.log(`\n${pass} OK, ${fail} fallidas`);
 process.exit(fail === 0 ? 0 : 1);

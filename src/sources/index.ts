@@ -11,6 +11,7 @@ import { VenezuelaReportaAdapter } from './venezuelareporta.ts';
 import { VzlanosAdapter } from './vzlanos.ts';
 import { StatusVzlaAdapter } from './statusvzla.ts';
 import { HospitalesAdapter } from './hospitales.ts';
+import { RescateInfantilAdapter } from './rescateinfantil.ts';
 // DesaparecidosTerremotoAdapter (API integradores "Reconexión", desaparecidos.ts):
 // integrada y VERIFICADA (key + mapeo OK contra data viva), pero GATEADA. El WAF de
 // CloudFront del proveedor bloquea la IP de datacenter de la VM (34.30.2.222) con 403.
@@ -28,5 +29,6 @@ export const adapters: SourceAdapter[] = [
   new VzlanosAdapter(),                // API JSON /api/personas paginada (cédula enmascarada = sin merge)
   new StatusVzlaAdapter(),             // Base44 entities (buscadas + encontradas de hospital), sin cédula
   new HospitalesAdapter(),             // FastAPI export pacientes de hospital (localizado), CON cédula
+  new RescateInfantilAdapter(),        // API /api/search (q='' lista todo) niños rescatados, CON cédula
   // new DesaparecidosTerremotoAdapter(), // GATEADA hasta allowlist de IP (ver nota arriba)
 ];
