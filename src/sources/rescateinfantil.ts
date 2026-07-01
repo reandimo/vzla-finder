@@ -10,11 +10,13 @@
  * CON cédula del niño (`cedula`, ~11% — clave de merge exacto cuando está). El
  * nombre se compone de firstName + secondName + lastName. `findLocation{state,
  * municipality}` ubica; `currentLocation.hospital` es dónde está ahora (a veces
- * vacío). `caseStatus`:
- *   MISSING → sin_contacto (sigue buscándose)
- *   HOSPITALIZED/REUNIFIED/TRANSFERRED/IDENTIFIED/PARTIAL_IDENTITY/UNIDENTIFIED
- *     → localizado (el niño está físicamente hallado/en custodia; la identificación
- *      o reunificación es lo pendiente). El enum no tiene estado de deceso.
+ * vacío). `caseStatus` → LISTA BLANCA (con menores, un falso "está a salvo" es el
+ * peor error, así que nunca damos "hallado" por defecto):
+ *   HOSPITALIZED/REUNIFIED/TRANSFERRED/IDENTIFIED/DISCHARGED/RESCUED/SAFE/FOUND
+ *     → localizado (confirmado hallado/en custodia).
+ *   MISSING, UNIDENTIFIED y PARTIAL_IDENTITY → sin_contacto (aún sin ubicar o sin
+ *     confirmar quién es; no afirmamos hallazgo). CUALQUIER valor desconocido/nuevo
+ *     cae acá también. El enum no tiene estado de deceso.
  *
  * ⚠️ DATOS DE MENORES + la API filtra PII de registro de más
  * (registrationIp/Ua/Gps, y datos del RESCATISTA: rescuerCedula/rescuerPhone/
@@ -116,9 +118,17 @@ export class RescateInfantilAdapter extends BaseHttpAdapter {
   }
 }
 
-/** MISSING → sin_contacto; cualquier otro estado (hallado/en custodia) → localizado. */
+/**
+ * LISTA BLANCA: solo estados que CONFIRMAN al niño hallado/en custodia → localizado.
+ * MISSING, UNIDENTIFIED, PARTIAL_IDENTITY y cualquier valor desconocido/nuevo →
+ * sin_contacto. Con menores nunca se afirma "a salvo" por defecto (evita el patrón
+ * de falsa esperanza del padrón hospitalario). Los fallecidos ya se filtran antes.
+ */
+const LOCATED_STATES = new Set([
+  'HOSPITALIZED', 'REUNIFIED', 'TRANSFERRED', 'IDENTIFIED', 'DISCHARGED', 'RESCUED', 'SAFE', 'FOUND',
+]);
 function mapStatus(s: unknown): Status {
-  return String(s ?? '').toUpperCase() === 'MISSING' ? 'sin_contacto' : 'localizado';
+  return LOCATED_STATES.has(String(s ?? '').toUpperCase().trim()) ? 'localizado' : 'sin_contacto';
 }
 
 function composeName(it: any): string | undefined {

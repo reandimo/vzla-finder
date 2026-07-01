@@ -249,6 +249,21 @@ check('rescateinfantil: MISSING → sin_contacto',
 check('rescateinfantil: HOSPITALIZED/REUNIFIED → localizado',
   riaById('8be54a66-56c0-4540-a8a9-914dadda5113')?.status === 'localizado' &&
   riaById('c0ffee00-0000-0000-0000-000000000000')?.status === 'localizado');
+// Lista blanca de estado: solo hallazgo confirmado es localizado; dudoso/nuevo → sin_contacto
+// (con menores nunca damos "a salvo" por defecto — evita el patrón de falsa esperanza).
+const riaWL = new RescateInfantilAdapter().parse(JSON.stringify({ data: [
+  { id: 'u1', firstName: 'Ana', lastName: 'Uno', caseStatus: 'UNIDENTIFIED' },
+  { id: 'u2', firstName: 'Ben', lastName: 'Dos', caseStatus: 'PARTIAL_IDENTITY' },
+  { id: 'u3', firstName: 'Cid', lastName: 'Tres', caseStatus: 'SEARCHING' }, // valor nuevo/desconocido
+  { id: 'u4', firstName: 'Dea', lastName: 'Cuatro', caseStatus: 'REUNIFIED' },
+] }));
+const riaWLById = (id: string) => riaWL.find((r) => r.sourceId === id);
+check('rescateinfantil: UNIDENTIFIED/PARTIAL_IDENTITY → sin_contacto (prudencia con menores)',
+  riaWLById('u1')?.status === 'sin_contacto' && riaWLById('u2')?.status === 'sin_contacto');
+check('rescateinfantil: estado desconocido/nuevo → sin_contacto (no localizado por defecto)',
+  riaWLById('u3')?.status === 'sin_contacto');
+check('rescateinfantil: hallazgo confirmado (REUNIFIED) → localizado',
+  riaWLById('u4')?.status === 'localizado');
 check('rescateinfantil: cédula del NIÑO se usa como clave de merge',
   riaById('8be54a66-56c0-4540-a8a9-914dadda5113')?.cedula === 'V-31234567');
 check('rescateinfantil: NO toma la cédula/teléfono del rescatista',
