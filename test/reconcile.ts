@@ -20,7 +20,7 @@ function feed(domain: string, raw: RawRecord, status: Status, ts: string, ingest
     rawName: raw.fullName, rawCedula: raw.cedula ?? null, firstSeen: ingestedAt, lastSeen: ingestedAt,
   });
   store.addNote({
-    noteId: `${domain}:${raw.sourceId}:${status}`, personId, sourceDomain: domain,
+    noteId: `${domain}:${raw.sourceId}`, personId, sourceDomain: domain,
     status, noteText: null, sourceTimestamp: ts, ingestedAt,
   });
   return personId;

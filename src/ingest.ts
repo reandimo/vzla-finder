@@ -45,8 +45,13 @@ export function ingestRecords(
       });
 
       const status = raw.status ?? 'sin_contacto';
+      // UNA nota por (fuente, registro): el status es un dato que se PISA en cada
+      // corrida, no parte de la clave. Si incluyéramos el status en el note_id, un
+      // cambio de estado (p.ej. localizado→vuelto a buscar) dejaría la nota vieja
+      // conviviendo con la nueva y reconcile seguiría viéndolo "localizado" para
+      // siempre (falsa esperanza). La clave estable es dominio:sourceId.
       store.addNote({
-        noteId: `${adapter.domain}:${raw.sourceId}:${status}`,
+        noteId: `${adapter.domain}:${raw.sourceId}`,
         personId,
         sourceDomain: adapter.domain,
         status,

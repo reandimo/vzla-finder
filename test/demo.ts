@@ -26,7 +26,7 @@ function feed(domain: string, raw: RawRecord, status: RawRecord['status']) {
     lastSeen: now(),
   });
   store.addNote({
-    noteId: `${domain}:${raw.sourceId}:${status}`,
+    noteId: `${domain}:${raw.sourceId}`,
     personId,
     sourceDomain: domain,
     status: status ?? 'sin_contacto',

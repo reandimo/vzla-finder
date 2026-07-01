@@ -4,7 +4,8 @@
  */
 import { Store } from '../src/db.ts';
 import { resolvePerson } from '../src/dedup.ts';
-import type { RawRecord } from '../src/types.ts';
+import { ingestRecords } from '../src/ingest.ts';
+import type { RawRecord, SourceAdapter } from '../src/types.ts';
 
 let pass = 0, fail = 0;
 const check = (n: string, c: boolean) => { console.log(`${c ? '✅' : '❌'} ${n}`); c ? pass++ : fail++; };
@@ -69,6 +70,15 @@ check('ref: no pisa un lugar concreto ya presente', store.getPerson(h1.personId)
 const g1 = resolvePerson(store, raw({ sourceId: 'G1', fullName: 'Beto Vago', cedula: 'V-9.333.444', reference: 'Zona centro', status: 'sin_contacto' }));
 resolvePerson(store, raw({ sourceId: 'G2', fullName: 'Beto Vago', cedula: '9333444', reference: 'Hospital Militar', status: 'sin_contacto' }));
 check('ref: una fuente sin_contacto no pisa la referencia', store.getPerson(g1.personId)!.lastSeenRef === 'Zona centro');
+
+// --- una fuente = UNA nota por registro: cambiar el estado PISA (no acumula rancio) ---
+const flipAdapter = { domain: 'flip.com' } as unknown as SourceAdapter;
+ingestRecords(store, flipAdapter, [raw({ sourceId: 'F', fullName: 'Flavia Flip', status: 'localizado' })]);
+ingestRecords(store, flipAdapter, [raw({ sourceId: 'F', fullName: 'Flavia Flip', status: 'sin_contacto' })]);
+const flipPid = store.getLinkBySource('flip.com', 'F')!.personId;
+const flipNotes = store.notesForPerson(flipPid).filter((n) => n.sourceDomain === 'flip.com');
+check('una fuente: cambiar estado PISA la nota (1 sola, sin localizado rancio)',
+  flipNotes.length === 1 && flipNotes[0].status === 'sin_contacto');
 
 console.log(`\n${pass} OK, ${fail} fallidas`);
 process.exit(fail === 0 ? 0 : 1);
