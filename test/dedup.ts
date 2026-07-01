@@ -56,5 +56,19 @@ check('sin cédula: re-scrape del mismo silo+id reusa la persona', f2.personId =
 const f3 = resolvePerson(store, raw({ sourceId: 'NOID-9', fullName: 'Pedro Sin Cédula', age: 50, state: 'Zulia' }), 'otro-silo.com');
 check('sin cédula: otro silo NO auto-fusiona (persona nueva)', f3.personId !== f1.personId && f3.created);
 
+// --- referencia: el "dónde fue hallado" (localizado + lugar concreto) gana sobre una ref vaga ---
+const h1 = resolvePerson(store, raw({ sourceId: 'H1', fullName: 'Ana Hallada', cedula: 'V-9.111.222', reference: 'No lo sé', status: 'sin_contacto' }));
+resolvePerson(store, raw({ sourceId: 'H2', fullName: 'Ana Hallada', cedula: '9111222', reference: 'Hospital Vargas · La Guaira', status: 'localizado' }));
+check('ref: hospital (localizado) pisa una referencia vaga', store.getPerson(h1.personId)!.lastSeenRef === 'Hospital Vargas · La Guaira');
+
+// pero NO pisa otro lugar concreto ya presente (evita churn entre fuentes)
+resolvePerson(store, raw({ sourceId: 'H3', fullName: 'Ana Hallada', cedula: '9111222', reference: 'Hospital Periférico de Catia', status: 'localizado' }));
+check('ref: no pisa un lugar concreto ya presente', store.getPerson(h1.personId)!.lastSeenRef === 'Hospital Vargas · La Guaira');
+
+// una fuente sin_contacto NO pisa la referencia (aunque nombre un lugar): solo el hallazgo manda
+const g1 = resolvePerson(store, raw({ sourceId: 'G1', fullName: 'Beto Vago', cedula: 'V-9.333.444', reference: 'Zona centro', status: 'sin_contacto' }));
+resolvePerson(store, raw({ sourceId: 'G2', fullName: 'Beto Vago', cedula: '9333444', reference: 'Hospital Militar', status: 'sin_contacto' }));
+check('ref: una fuente sin_contacto no pisa la referencia', store.getPerson(g1.personId)!.lastSeenRef === 'Zona centro');
+
 console.log(`\n${pass} OK, ${fail} fallidas`);
 process.exit(fail === 0 ? 0 : 1);

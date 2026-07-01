@@ -86,10 +86,33 @@ function enrichGaps(existing: PersonRecord, raw: RawRecord, now: string): Person
     gender: existing.gender ?? raw.gender ?? null,
     lastSeenState: existing.lastSeenState ?? raw.state ?? null,
     lastSeenCity: existing.lastSeenCity ?? raw.city ?? null,
-    lastSeenRef: existing.lastSeenRef ?? raw.reference ?? null,
+    lastSeenRef: pickRef(existing.lastSeenRef, raw),
     photoUrl: existing.photoUrl ?? raw.photoUrl ?? null,
     updatedAt: now,
   };
+}
+
+/**
+ * Elige la referencia de ubicación. Regla general: rellena el hueco, sin pisar lo ya
+ * presente. EXCEPCIÓN: una referencia de una fuente que reporta `localizado` y nombra
+ * un LUGAR CONCRETO (hospital, refugio, clínica…) — el "dónde fue hallado" — gana
+ * sobre una referencia vaga o de mera zona ("No lo sé", "La Guaira"): ese lugar es
+ * justo lo que reúne a la familia. NO pisa otro lugar concreto ya presente (evita
+ * churn entre dos fuentes que ubican distinto). Medido 2026-07-01: sin esto, el
+ * hospital de ~7% de los hospitalizados quedaba oculto tras una ref genérica.
+ */
+function pickRef(existingRef: string | null, raw: RawRecord): string | null {
+  const incoming = raw.reference?.trim() || null;
+  if (!incoming) return existingRef;
+  if (!existingRef?.trim()) return incoming;
+  if (raw.status === 'localizado' && isConcreteVenue(incoming) && !isConcreteVenue(existingRef))
+    return incoming;
+  return existingRef;
+}
+
+/** ¿La referencia nombra un lugar concreto de hallazgo (no una zona ni una vaguedad)? */
+function isConcreteVenue(ref: string): boolean {
+  return /hospital|cl[íi]nica|refugio|cruz roja|perif[ée]rico|ambulatorio|centro de salud|materno|ipasme|dispensario|m[óo]dulo|parque|llanito/i.test(ref);
 }
 
 function newPerson(raw: RawRecord, cedula: string | null, now: string): PersonRecord {
