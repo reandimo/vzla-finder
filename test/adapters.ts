@@ -208,21 +208,28 @@ check('statusvzla: sourceUrl a /personas', svzById('b1')?.sourceUrl === 'https:/
 
 // --- hospitales (62.146.225.76:9090): export FastAPI de pacientes, CON cédula ---
 const hospSample = JSON.stringify({
-  generado: '2026-06-29T04:43:05Z', total: 4,
+  generado: '2026-06-29T04:43:05Z', total: 5,
   pacientes: [
-    { id: 9, nombre_completo: 'Aleida Querales', cedula: '9928918', estado: null, edad: 61,
+    { id: 9, nombre_completo: 'Aleida Querales', cedula: '9928918', estado: 'Refugiado', edad: 61,
       sector: 'La Guaira', hospital: 'Cruz Roja Bellas Artes', processed_at: null },
-    { id: 10, nombre_completo: 'ABRAAN VERGARA', cedula: null, estado: 'HOSPITAL', edad: 18,
+    { id: 10, nombre_completo: 'ABRAAN VERGARA', cedula: null, estado: 'Hospitalizado', edad: 18,
       sector: null, hospital: 'Hospital Vargas' },
     { id: 11, nombre_completo: 'Persona Fallecida', cedula: '1234567', estado: 'Fallecido',
       hospital: 'Hospital Militar' }, // deceso → omite
     { id: 12, nombre_completo: '   ', cedula: null, estado: 'UCI', hospital: 'El Llanito' }, // sin nombre → omite
+    { id: 13, nombre_completo: 'Paola Acevedo Sanchez', cedula: '25640480', estado: 'En Búsqueda', edad: 29,
+      sector: 'Oppe26', hospital: 'En Búsqueda' }, // SIGUE desaparecida → sin_contacto
   ],
 });
 const hosp = new HospitalesAdapter().parse(hospSample);
 const hospById = (id: string) => hosp.find((r) => r.sourceId === id);
-check('hospitales: ingiere pacientes válidos (omite vacíos y fallecidos)', hosp.length === 2);
-check('hospitales: todos localizado (hallados en hospital)', hosp.every((r) => r.status === 'localizado'));
+check('hospitales: ingiere pacientes válidos (omite vacíos y fallecidos)', hosp.length === 3);
+check('hospitales: hospitalizado/refugiado → localizado',
+  hospById('9')?.status === 'localizado' && hospById('10')?.status === 'localizado');
+check('hospitales: "En Búsqueda" → sin_contacto (sigue desaparecida, no falsa esperanza)',
+  hospById('13')?.status === 'sin_contacto');
+check('hospitales: en búsqueda NO usa "En Búsqueda" de hospital; referencia = sector origen',
+  hospById('13')?.reference === 'Oppe26');
 check('hospitales: cédula estructurada se usa como clave de merge',
   hospById('9')?.cedula === '9928918' && hospById('9')?.age === 61);
 check('hospitales: cédula null → undefined (sin merge)', hospById('10')?.cedula === undefined);

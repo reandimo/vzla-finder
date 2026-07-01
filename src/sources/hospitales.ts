@@ -1,7 +1,8 @@
 /**
  * Adaptador para el registro hospitalario "Búsqueda de Personas — Venezuela junio
- * 2026" (FastAPI/uvicorn en http://62.146.225.76:9090). Es un padrón de personas
- * ATENDIDAS en hospitales tras el terremoto — gente HALLADA con vida → localizado.
+ * 2026" (FastAPI/uvicorn en http://62.146.225.76:9090). Padrón MIXTO: gente atendida
+ * en hospitales/refugios (hallada con vida → localizado) PERO también casos que el
+ * propio padrón sigue buscando ("En Búsqueda" / "Por confirmar" → sin_contacto).
  *
  * API pública (sin auth, sin captcha). Usamos el export completo (1 request cortés):
  *   GET /public/descargar/pacientes.json  → { total, results:[...] }
@@ -16,7 +17,8 @@
  *
  * ⚠️ FALLECIDOS: `estado` "Fallecido"/"FALLECIDO" se EXCLUYE — marcar a un fallecido
  * como "a salvo" sería falso e hiriente (mismo criterio que estoyaqui/afectados/
- * statusvzla). El resto de estados clínicos (Trauma, UCI, De alta, etc.) = hallado.
+ * statusvzla). ⚠️ "En Búsqueda"/"Por confirmar" NO son "a salvo": siguen desaparecidos
+ * → sin_contacto. El resto (Hospitalizado, Refugiado, De Alta, Traslado…) = hallado.
  *
  * Referencia = hospital donde está + sector de origen (lo que ubica a la persona).
  *
@@ -24,7 +26,7 @@
  */
 import { readFileSync } from 'node:fs';
 import type {
-  RawRecord, ConditionalReq, RawFetch, SourceConfig,
+  RawRecord, ConditionalReq, RawFetch, SourceConfig, Status,
 } from '../types.ts';
 import { BaseHttpAdapter, DEFAULT_CONFIG } from './base.ts';
 
@@ -63,11 +65,20 @@ export class HospitalesAdapter extends BaseHttpAdapter {
     for (const it of items) {
       const name = strOrUndef(it?.nombre_completo);
       if (!name) continue;
-      if (/fallec/i.test(String(it?.estado ?? ''))) continue; // nunca "a salvo"
+      const estado = String(it?.estado ?? '');
+      if (/fallec/i.test(estado)) continue; // nunca "a salvo"
       const id = String(it.id);
       if (seen.has(id)) continue;
       seen.add(id);
-      const hospital = strOrUndef(it.hospital);
+      // El padrón MEZCLA estados. "Hospitalizado / Refugiado / De Alta / Traslado…"
+      // = hallado con vida → localizado. Pero "En Búsqueda" / "Por confirmar" siguen
+      // DESAPARECIDOS → sin_contacto: marcarlos "a salvo" da falsa esperanza a la
+      // familia (una tía buscada 6 días figuraba "Localizado" por este bug).
+      const stillMissing = /b[úu]squeda|por\s*confirmar/i.test(estado);
+      const status: Status = stillMissing ? 'sin_contacto' : 'localizado';
+      // Si sigue en búsqueda, `hospital` suele venir como "En Búsqueda" (placeholder,
+      // no un hospital real) → no lo usamos de referencia; el sector (origen) sí sirve.
+      const hospital = stillMissing ? undefined : strOrUndef(it.hospital);
       const sector = strOrUndef(it.sector);
       const reference = [hospital, sector].filter(Boolean).join(' · ') || undefined;
       out.push({
@@ -79,7 +90,7 @@ export class HospitalesAdapter extends BaseHttpAdapter {
         gender: undefined,
         reference,
         photoUrl: undefined,
-        status: 'localizado', // está atendido en un hospital = hallado con vida
+        status,
         lastSeenAt: strOrUndef(it.processed_at),
         raw: it,
       });
